@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     secret_key: str = "change-me"
 
     # Database
-    database_url: str = "sqlite+aiosqlite:///./mpp.db"
+    database_url: str = "sqlite+aiosqlite:///./src/meal_planner.db"
 
     # Nutrition defaults (OQ-02 from Technical Plan)
     calorie_tolerance_default: int = 100       # ±kcal
