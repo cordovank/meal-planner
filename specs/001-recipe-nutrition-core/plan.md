@@ -15,6 +15,7 @@ MPP is a local-first, web-based recipe home and nutrition-aware meal planning co
 **Primary Dependencies**: FastAPI, SQLAlchemy 2.0 (async), Alembic, Pydantic v2, Jinja2 + HTMX  
 **Storage**: SQLite (Phase 1), PostgreSQL (Phase 3, zero business logic changes)  
 **Testing**: pytest + pytest-asyncio, pytest-cov, httpx  
+**Test Report**: See [tests/TEST_REPORT.md](/tests/TEST_REPORT.md) for Phase 1–2 test results (45 tests, all passing)  
 **Target Platform**: Web application (localhost or private home server)  
 **Project Type**: Web service (local-first, single-user/small household)  
 **Performance Goals**: <500ms recipe retrieval for 100 recipes, <1s nutrition calculation per recipe, <60s daily logging  
