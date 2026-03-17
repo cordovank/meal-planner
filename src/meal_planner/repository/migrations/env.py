@@ -1,7 +1,6 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import create_engine, pool
 
 from alembic import context
 
@@ -18,9 +17,11 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+from meal_planner.repository.sqlalchemy.models import Base
+
+# NOTE: `Base.metadata` should include all mapped models.
+# This enables Alembic autogenerate to detect schema changes.
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -52,25 +53,29 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+def _sync_database_url() -> str:
+    """Convert an async DB URL to a sync URL for migrations."""
+
+    # Alembic migrations run synchronously; use the registerable sync driver.
+    url = settings.database_url
+    if url.startswith("sqlite+aiosqlite"):
+        return url.replace("+aiosqlite", "+pysqlite")
+    return url
+
+
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode.
+    """Run migrations in 'online' mode using a synchronous engine."""
 
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
-
-    """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    connectable = create_engine(
+        _sync_database_url(),
+        future=True,
         poolclass=pool.NullPool,
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
-        with context.begin_transaction():
+        with connection.begin():
             context.run_migrations()
 
 

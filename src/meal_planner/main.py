@@ -4,6 +4,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from meal_planner.config import settings
+from meal_planner.api.middleware import register_api_middleware
+
+templates = Jinja2Templates(directory="src/meal_planner/web/templates")
 
 
 def create_app() -> FastAPI:
@@ -16,6 +19,7 @@ def create_app() -> FastAPI:
     )
 
     app.mount("/static", StaticFiles(directory="src/meal_planner/web/static"), name="static")
+    register_api_middleware(app)
 
     # Register API routers (uncomment as you build them)
     # from meal_planner.api.v1 import recipes, nutrition, profiles

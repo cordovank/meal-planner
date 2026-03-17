@@ -1,0 +1,19 @@
+/* ./src/meal_planner/web/static/css/main.css */
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #fafafa;
+  color: #111;
+}
+
+header {
+  padding: 1rem;
+  background: #2c3e50;
+  color: white;
+}
+
+main {
+  padding: 1rem;
+}

@@ -22,11 +22,11 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create initial Alembic migration for base schema in src/meal_planner/repository/migrations/versions/
-- [ ] T002 [P] Configure Pydantic schemas for common types in src/meal_planner/api/schemas/common.py
-- [ ] T003 [P] Setup basic error handling middleware in src/meal_planner/api/middleware.py
-- [ ] T004 [P] Initialize Jinja2 templates structure in src/meal_planner/web/templates/
-- [ ] T005 [P] Configure static file serving in src/meal_planner/web/static/
+- [X] T001 Create initial Alembic migration for base schema in src/meal_planner/repository/migrations/versions/
+- [X] T002 [P] Configure Pydantic schemas for common types in src/meal_planner/api/schemas/common.py
+- [X] T003 [P] Setup basic error handling middleware in src/meal_planner/api/middleware.py
+- [X] T004 [P] Initialize Jinja2 templates structure in src/meal_planner/web/templates/
+- [X] T005 [P] Configure static file serving in src/meal_planner/web/static/
 
 ---
 
@@ -36,12 +36,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Create base entity models with UUID PKs and audit fields in src/meal_planner/repository/sqlalchemy/models/base.py
-- [ ] T007 [P] Implement repository protocol interfaces in src/meal_planner/services/interfaces.py
-- [ ] T008 [P] Setup SQLAlchemy async session management in src/meal_planner/repository/sqlalchemy/session.py
-- [ ] T009 [P] Create unit conversion utility functions in src/meal_planner/services/unit_conversion.py
-- [ ] T010 [P] Implement fuzzy search utility using RapidFuzz in src/meal_planner/infra/search/fuzzy.py
-- [ ] T011 [P] Setup nutrition calculation service foundation in src/meal_planner/services/nutrition_calculator.py
+- [X] T006 Create base entity models with UUID PKs and audit fields in src/meal_planner/repository/sqlalchemy/models/base.py
+- [X] T007 [P] Implement repository protocol interfaces in src/meal_planner/services/interfaces.py
+- [X] T008 [P] Setup SQLAlchemy async session management in src/meal_planner/repository/sqlalchemy/session.py
+- [X] T009 [P] Create unit conversion utility functions in src/meal_planner/services/unit_conversion.py
+- [X] T010 [P] Implement fuzzy search utility using RapidFuzz in src/meal_planner/infra/search/fuzzy.py
+- [X] T011 [P] Setup nutrition calculation service foundation in src/meal_planner/services/nutrition_calculator.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -253,3 +253,14 @@
 **Testing Approach**: Manual testing per story checkpoint. Integration testing in final phase.
 
 **Risk Mitigation**: Foundation phase ensures stable base. Parallel tasks within stories accelerate development.
+---
+
+## Testing & Validation
+
+**Master Test Report**: See [TEST_REPORT.md](../../tests/TEST_REPORT.md)  
+**Validation & Commands**: See [VALIDATION.md](../../VALIDATION.md)  
+**Testing Strategy**: See [TESTING.md](./TESTING.md)
+
+Phase 1–2 foundations include **45 unit tests** covering critical business logic (nutrition, conversions, search, sessions).
+
+All tests passing. ✅ Ready for Phase 3 (User Story 1: Recipe CRUD).
