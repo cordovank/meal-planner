@@ -41,7 +41,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
-async def register_api_middleware(app: Any) -> None:
+def register_api_middleware(app: Any) -> None:
     """Register middleware and exception handlers on the FastAPI app."""
 
     app.add_exception_handler(HTTPException, http_exception_handler)

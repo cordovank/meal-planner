@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import ClassVar
 
 from sqlalchemy import Column, DateTime, String
 from sqlalchemy.orm import DeclarativeBase, declared_attr
@@ -17,8 +18,9 @@ class Base(DeclarativeBase):
     """Base declarative class with UUID primary key and audit timestamps."""
 
     __abstract__ = True
+    __allow_unmapped__ = True
 
-    id: uuid.UUID = Column(
+    id = Column(
         String(36),
         primary_key=True,
         default=lambda: str(uuid.uuid4()),
@@ -27,9 +29,9 @@ class Base(DeclarativeBase):
         index=True,
     )
 
-    created_at: datetime = Column(DateTime(timezone=True), default=_now, nullable=False)
-    updated_at: datetime = Column(DateTime(timezone=True), default=_now, onupdate=_now, nullable=False)
-    deleted_at: datetime | None = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=_now, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=_now, onupdate=_now, nullable=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
     @declared_attr
     def __tablename__(cls) -> str:  # pragma: no cover

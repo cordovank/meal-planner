@@ -21,9 +21,9 @@ def create_app() -> FastAPI:
     app.mount("/static", StaticFiles(directory="src/meal_planner/web/static"), name="static")
     register_api_middleware(app)
 
-    # Register API routers (uncomment as you build them)
-    # from meal_planner.api.v1 import recipes, nutrition, profiles
-    # app.include_router(recipes.router, prefix="/api/v1")
+    # Register API routers
+    from meal_planner.api.v1 import recipes_router
+    app.include_router(recipes_router)
 
     return app
 

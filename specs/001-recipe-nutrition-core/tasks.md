@@ -55,18 +55,18 @@
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] [US1] Create Recipe and RecipeIngredient models in src/meal_planner/repository/sqlalchemy/models/recipe.py
-- [ ] T013 [P] [US1] Create RecipeNote model in src/meal_planner/repository/sqlalchemy/models/recipe_note.py
-- [ ] T014 [P] [US1] Implement RecipeRepository protocol in src/meal_planner/repository/sqlalchemy/repositories/recipe_repository.py
-- [ ] T015 [US1] Create RecipeService with CRUD operations in src/meal_planner/services/recipe_service.py
-- [ ] T016 [P] [US1] Create Pydantic schemas for recipe API in src/meal_planner/api/schemas/recipe.py
-- [ ] T017 [US1] Implement recipe API endpoints in src/meal_planner/api/v1/recipes.py
-- [ ] T018 [P] [US1] Add recipe scaling logic to RecipeService
-- [ ] T019 [P] [US1] Implement recipe duplication/versioning in RecipeService
-- [ ] T020 [P] [US1] Add full-text search for recipes using FTS5 in RecipeRepository
-- [ ] T021 [P] [US1] Create recipe list template in src/meal_planner/web/templates/recipes/list.html
-- [ ] T022 [P] [US1] Create recipe detail template in src/meal_planner/web/templates/recipes/detail.html
-- [ ] T023 [P] [US1] Create recipe form template in src/meal_planner/web/templates/recipes/form.html
+- [X] T012 [P] [US1] Create Recipe and RecipeIngredient models in src/meal_planner/repository/sqlalchemy/models/recipe.py
+- [X] T013 [P] [US1] Create RecipeNote model in src/meal_planner/repository/sqlalchemy/models/recipe_note.py
+- [X] T014 [P] [US1] Implement RecipeRepository protocol in src/meal_planner/repository/sqlalchemy/repositories/recipe_repository.py
+- [X] T015 [US1] Create RecipeService with CRUD operations in src/meal_planner/services/recipe_service.py
+- [X] T016 [P] [US1] Create Pydantic schemas for recipe API in src/meal_planner/api/schemas/recipe.py
+- [X] T017 [US1] Implement recipe API endpoints in src/meal_planner/api/v1/recipes.py
+- [X] T018 [P] [US1] Add recipe scaling logic to RecipeService
+- [X] T019 [P] [US1] Implement recipe duplication/versioning in RecipeService
+- [X] T020 [P] [US1] Add full-text search for recipes using FTS5 in RecipeRepository
+- [X] T021 [P] [US1] Create recipe list template in src/meal_planner/web/templates/recipes/list.html
+- [X] T022 [P] [US1] Create recipe detail template in src/meal_planner/web/templates/recipes/detail.html
+- [X] T023 [P] [US1] Create recipe form template in src/meal_planner/web/templates/recipes/form.html
 
 **Checkpoint**: User Story 1 fully functional - recipes can be created, edited, searched, and organized
 
