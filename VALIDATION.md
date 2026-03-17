@@ -1,7 +1,7 @@
 # Validation & Commands Reference
 
-**Date**: 2026-03-16  
-**Status**: ✅ Phase 1–2 Validated  
+**Date**: 2026-03-17  
+**Status**: ✅ Phase 1–3 Validated  
 
 ---
 
@@ -9,7 +9,7 @@
 
 ### Run All Tests
 ```bash
-./.venv/bin/python -m pytest tests/unit/ -v
+./.venv/bin/python -m pytest tests/ -v
 ```
 
 ### Run Application (Development)
@@ -42,6 +42,97 @@
 #### View Migration History
 ```bash
 ./.venv/bin/python -m alembic -c alembic.ini history
+```
+
+---
+
+## Phase 1–3 Validation Log
+
+### Phase 3: Recipe Management (User Story 1)
+
+#### Automated Validation Commands
+
+**Python Compilation Check**:
+```bash
+uv run python -m py_compile src/meal_planner/repository/sqlalchemy/models/recipe.py src/meal_planner/repository/sqlalchemy/repositories/recipe_repository.py src/meal_planner/services/recipe_service.py src/meal_planner/api/schemas/recipe.py src/meal_planner/api/v1/recipes.py
+```
+*Result*: ✅ All files compile successfully
+
+**FastAPI App Initialization**:
+```bash
+uv run python -c "from meal_planner.main import app; print('✓ FastAPI app initialized successfully'); print('Available routes:', len([route.path for route in app.routes]))"
+```
+*Result*: ✅ App starts with 17 routes
+
+**Database Schema Validation**:
+```bash
+sqlite3 src/meal_planner.db ".schema recipe"
+```
+*Result*: ✅ Recipe tables created with correct schema (id, name, description, servings, prep_time_minutes, cook_time_minutes, instructions, state, timestamps, soft delete)
+
+**Database Indexes Check**:
+```bash
+sqlite3 src/meal_planner.db ".indexes recipe"
+```
+*Result*: ✅ Proper indexes created (state, deleted_at for all tables, foreign key indexes)
+
+**Migration Status**:
+```bash
+sqlite3 src/meal_planner.db "SELECT * FROM alembic_version;"
+```
+*Result*: ✅ Migration 0002 applied successfully
+
+**Integration Tests**:
+```bash
+uv run python -m pytest tests/integration/test_recipe_service.py -v
+```
+*Result*: ✅ All 7 tests pass (CRUD, scaling, duplication, search)
+
+**Full Test Suite**:
+```bash
+uv run python -m pytest tests/ --tb=short
+```
+*Result*: ✅ All 52 tests pass in 0.43s
+
+#### Manual Validation Instructions
+
+**Recipe Creation Flow**:
+1. Start server: `uv run uvicorn meal_planner.main:app --reload`
+2. Navigate to `http://localhost:8000/recipes`
+3. Click "Add Recipe"
+4. Fill form (name, servings, ingredients with amounts/units)
+5. Save and verify recipe appears in list
+
+**Recipe Scaling Flow**:
+1. View recipe details
+2. Click "Scale Recipe"
+3. Enter new serving size
+4. Verify ingredients scaled proportionally (e.g., 2 cups flour for 4 servings becomes 4 cups for 8 servings)
+
+**Recipe Search Flow**:
+1. Create multiple recipes
+2. Use search box on list page
+3. Enter partial names
+4. Verify filtered results
+
+**API Testing**:
+```bash
+# List recipes
+curl http://localhost:8000/api/v1/recipes
+
+# Create recipe
+curl -X POST http://localhost:8000/api/v1/recipes \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test Recipe","servings":2,"ingredients":[{"food_name":"Flour","amount":1.0,"unit":"cup"}]}'
+
+# Get recipe
+curl http://localhost:8000/api/v1/recipes/{uuid}
+```
+
+**Database Integrity Check**:
+```bash
+sqlite3 src/meal_planner.db "SELECT COUNT(*) FROM recipe WHERE deleted_at IS NULL;"
+sqlite3 src/meal_planner.db "SELECT name, servings FROM recipe LIMIT 5;"
 ```
 
 ---

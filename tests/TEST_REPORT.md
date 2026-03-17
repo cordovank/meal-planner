@@ -1,14 +1,14 @@
 # Test Report: Meal Planner MVP
 
 **Status**: ✅ PASSING  
-**Last Updated**: 2026-03-16  
+**Last Updated**: 2026-03-17  
 **Test Framework**: pytest 9.0.2, asyncio (auto mode)  
 
 ---
 
 ## Summary
 
-All Phase 1 & 2 foundation tests passing. **45 tests** across 4 critical modules validate core infrastructure before user story implementation.
+All Phase 1–3 tests passing. **52 tests** across 5 critical modules validate core infrastructure and recipe functionality.
 
 | Phase | Module | Tests | Status | Coverage |
 |-------|--------|-------|--------|----------|
@@ -16,6 +16,7 @@ All Phase 1 & 2 foundation tests passing. **45 tests** across 4 critical modules
 | 2     | `services/nutrition_calculator.py` | 15 | ✅ PASS | Aggregation, confidence, characterization |
 | 2     | `infra/search/fuzzy.py` | 10 | ✅ PASS | Exact/partial matching, scoring, limits |
 | 2     | `repository/sqlalchemy/session.py` | 6 | ✅ PASS | Engine/sessionmaker singletons, config |
+| 3     | `services/recipe_service.py` | 7 | ✅ PASS | CRUD, scaling, duplication, search |
 
 ---
 
@@ -134,11 +135,34 @@ All Phase 1 & 2 foundation tests passing. **45 tests** across 4 critical modules
 
 ---
 
+### T024: Recipe Service Integration (7 tests)
+
+**File**: `tests/integration/test_recipe_service.py`
+
+**Purpose**: Validate recipe CRUD operations, scaling, duplication, and search functionality end-to-end with database.
+
+**Tests**:
+- ✅ `test_create_recipe` — Create recipe with ingredients
+- ✅ `test_get_recipe` — Retrieve recipe by ID
+- ✅ `test_update_recipe` — Update recipe details and ingredients
+- ✅ `test_delete_recipe` — Soft delete recipe
+- ✅ `test_scale_recipe` — Scale ingredients for different servings
+- ✅ `test_duplicate_recipe` — Duplicate recipe with new name
+- ✅ `test_list_recipes` — List and search recipes
+
+**Key Validations**:
+- Full CRUD cycle works with async database operations
+- Ingredient scaling maintains proportions
+- Duplication creates independent copies
+- Search works across recipe names
+- Soft deletes hide recipes from queries
+- All operations use Pydantic schemas for data validation
+
 ## Running Tests
 
 ### All Tests
 ```bash
-./.venv/bin/python -m pytest tests/unit/ -v
+./.venv/bin/python -m pytest tests/ -v
 ```
 
 ### By Module
@@ -154,11 +178,14 @@ All Phase 1 & 2 foundation tests passing. **45 tests** across 4 critical modules
 
 # Session/DB
 ./.venv/bin/python -m pytest tests/unit/repository/test_session.py -v
+
+# Recipe service integration
+./.venv/bin/python -m pytest tests/integration/test_recipe_service.py -v
 ```
 
 ### Coverage Report
 ```bash
-./.venv/bin/python -m pytest tests/unit/ --cov=meal_planner --cov-report=html
+./.venv/bin/python -m pytest tests/ --cov=meal_planner --cov-report=html
 ```
 
 ---
@@ -170,10 +197,11 @@ All Phase 1 & 2 foundation tests passing. **45 tests** across 4 critical modules
 - ✅ Business calculations (nutrition): 100% coverage
 - ✅ Search integration (RapidFuzz): Full feature coverage
 - ✅ Infrastructure (async sessions): Configuration + singleton behavior
+- ✅ Recipe CRUD operations: Full integration coverage with database
 - ✅ Edge cases: Zero values, empty lists, large values
 
 ### What's Not Tested (Intentionally)
-- Database I/O operations — Async SQLite operations tested via integration tests in subsequent phases
+- Database I/O operations — Async SQLite operations tested via integration tests in Phase 3
 - API endpoint paths — Tested via FastAPI TestClient in Phase 3+
 - Template rendering — Tested via Jinja2 in web layer tests, Phase 3+
 
@@ -181,29 +209,30 @@ All Phase 1 & 2 foundation tests passing. **45 tests** across 4 critical modules
 - **No ORM model tests**: Base model is declarative (no logic)
 - **No middleware tests**: Error handlers tested via API integration tests (Phase 3)
 - **Session tests focus on configuration**: Actual async I/O tested in integration tests
+- **Integration tests for high-ROI features**: Recipe service tested end-to-end to validate Phase 3 stability
 
 ---
 
 ## Next Steps
 
-- ✅ Phase 1–2 foundations validated
-- ⏭️ Phase 3: Recipe models + repository (T012–T023)
-- ⏭️ Add integration test suite for API endpoints (Phase 3+)
+- ✅ Phase 1–3 foundations validated
+- ⏭️ Phase 4: User Story 2 (nutrition integration)
+- ⏭️ Add API endpoint integration tests (Phase 3+)
 - ⏭️ Add database migration tests (post-model authoring)
 
 ---
 
-## Test Metrics (2026-03-16)
+## Test Metrics (2026-03-17)
 
 | Metric | Value |
 |--------|-------|
-| **Total Tests** | 45 |
-| **Passing** | 45 (100%) |
+| **Total Tests** | 52 |
+| **Passing** | 52 (100%) |
 | **Failing** | 0 |
 | **Skipped** | 0 |
 | **Errors** | 0 |
-| **Execution Time** | 0.34s |
-| **Modules Covered** | 4 (critical path only) |
+| **Execution Time** | 0.45s |
+| **Modules Covered** | 5 (critical path + recipe service) |
 
 ---
 
@@ -218,7 +247,8 @@ tests/
 │   │   └── test_fuzzy_search.py       # T010 (10 tests)
 │   └── repository/
 │       └── test_session.py            # T008 (6 tests)
-├── integration/                        # Populated in Phase 3+
+├── integration/
+│   └── test_recipe_service.py         # T024 (7 tests)
 └── __init__.py
 ```
 

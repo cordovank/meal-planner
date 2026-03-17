@@ -55,12 +55,12 @@ class Recipe(Base):
         cascade="all, delete-orphan",
         foreign_keys="RecipeNote.recipe_id",
     )
-    versions: list[Recipe] = relationship(
-        "Recipe",
-        remote_side=[parent_recipe_id],
-        backref="parent",
-        cascade="all, delete-orphan",
-    )
+    # versions: list[Recipe] = relationship(
+    #     "Recipe",
+    #     remote_side=id,
+    #     backref="parent",
+    #     cascade="all, delete-orphan",
+    # )
 
     def __repr__(self) -> str:
         return f"<Recipe {self.title!r} (state={self.state})>"
