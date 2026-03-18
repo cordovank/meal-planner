@@ -7,7 +7,6 @@ import pytest
 from uuid import uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from meal_planner.repository.sqlalchemy.session import get_sessionmaker
 from meal_planner.services.recipe_service import RecipeService
 from meal_planner.api.schemas.recipe import (
     RecipeCreateSchema,
@@ -17,14 +16,6 @@ from meal_planner.api.schemas.recipe import (
 )
 # Import models to ensure mappers are registered
 from meal_planner.repository.sqlalchemy.models.recipe import Recipe, RecipeIngredient, RecipeNote
-
-
-@pytest.fixture
-async def db_session():
-    """Provide a database session for tests."""
-    sessionmaker = get_sessionmaker()
-    async with sessionmaker() as session:
-        yield session
 
 
 @pytest.fixture

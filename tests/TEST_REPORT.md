@@ -8,7 +8,7 @@
 
 ## Summary
 
-All Phase 1–4 tests passing. **141 tests** across 13 test modules validate core infrastructure, recipe functionality, food library, nutrition calculations, API endpoints, error handling, and schema validation.
+All Phase 1–5 tests passing. **192 tests** across 17 test modules validate core infrastructure, recipe functionality, food library, nutrition calculations, profile management, API endpoints, error handling, and schema validation.
 
 | Phase | Module | Tests | Status | Coverage |
 |-------|--------|-------|--------|----------|
@@ -24,6 +24,10 @@ All Phase 1–4 tests passing. **141 tests** across 13 test modules validate cor
 | 4     | `api/v1/food.py` (HTTP endpoints) | 18 | ✅ PASS | Food CRUD, nutrition, recipe nutrition breakdown |
 | 4     | `services/food_service.py` (unit) | 10 | ✅ PASS | Food service branch coverage with mocks |
 | 4     | `api/schemas/food.py` | 7 | ✅ PASS | Food/nutrition schema validation |
+| 5     | `api/v1/profiles.py` (HTTP endpoints) | 17 | ✅ PASS | Profile CRUD, default management, comparison |
+| 5     | `services/profile_service.py` (unit) | 14 | ✅ PASS | Service branch coverage, comparison logic |
+| 5     | `services/profile_service.py` (integration) | 7 | ✅ PASS | Profile CRUD, targets, defaults, comparison |
+| 5     | `api/schemas/profile.py` | 11 | ✅ PASS | Profile/target schema validation |
 
 ---
 
@@ -280,6 +284,107 @@ All Phase 1–4 tests passing. **141 tests** across 13 test modules validate cor
 
 ---
 
+### Profile Service Unit Tests (14 tests)
+
+**File**: `tests/unit/services/test_profile_service_unit.py`
+
+**Purpose**: Mock-based unit tests for ProfileService methods including CRUD operations and nutrition comparison logic.
+
+**Tests**:
+- ✅ `test_get_profile_not_found` — Returns None
+- ✅ `test_get_profile_found` — Returns profile
+- ✅ `test_delete_profile_not_found` — Returns False
+- ✅ `test_delete_profile_success` — Returns True, calls repo
+- ✅ `test_create_profile_sets_default` — Clears existing defaults
+- ✅ `test_create_profile_with_targets` — Creates all valid targets
+- ✅ `test_create_profile_ignores_invalid_nutrient` — Skips invalid keys
+- ✅ `test_update_profile_not_found` — Returns None
+- ✅ `test_update_profile_replaces_targets` — Removes old, adds new
+- ✅ `test_compute_status_within_range` — Values inside tolerance
+- ✅ `test_compute_status_approaching` — Values near boundary
+- ✅ `test_compute_status_exceeding` — Values far from target
+- ✅ `test_compare_nutrition_within_range` — Full comparison flow
+- ✅ `test_compare_nutrition_with_gaps` — Gap detection
+- ✅ `test_compare_nutrition_no_targets` — Returns no_targets
+- ✅ `test_compare_nutrition_portion_scaling` — Portion multiplication
+
+---
+
+### Profile Schema Validation (11 tests)
+
+**File**: `tests/unit/schemas/test_profile_schemas.py`
+
+**Purpose**: Validate Pydantic schema constraints for profile API.
+
+**Tests**:
+- ✅ `test_create_schema_valid_minimal` — Name only
+- ✅ `test_create_schema_valid_full` — All fields
+- ✅ `test_create_schema_name_too_long` — >50 chars rejected
+- ✅ `test_create_schema_name_empty` — Empty name rejected
+- ✅ `test_create_schema_negative_calorie_target` — Negative rejected
+- ✅ `test_create_schema_zero_calorie_target` — Zero rejected
+- ✅ `test_create_schema_invalid_nutrient_key` — Bad key rejected
+- ✅ `test_target_value_must_be_positive` — Zero target rejected
+- ✅ `test_target_tolerance_must_be_non_negative` — Negative tolerance rejected
+- ✅ `test_update_schema_all_optional` — All fields optional
+- ✅ `test_update_schema_partial` — Partial update valid
+
+---
+
+### Profile API Endpoints (17 tests)
+
+**File**: `tests/api/test_profile_endpoints.py`
+
+**Purpose**: Full-stack HTTP integration tests for profile CRUD, default management, target validation, and recipe comparison.
+
+**Test Groups**:
+
+#### Profile CRUD (8 tests)
+- ✅ `test_create_profile_returns_201` — POST with targets returns 201
+- ✅ `test_create_then_get_profile` — Persistence verified
+- ✅ `test_get_nonexistent_profile_returns_404` — Random UUID returns 404
+- ✅ `test_list_profiles` — GET returns profiles with total
+- ✅ `test_update_profile` — PUT updates fields and replaces targets
+- ✅ `test_update_nonexistent_profile_returns_404` — PUT on missing returns 404
+- ✅ `test_delete_profile_returns_204` — DELETE soft-deletes
+- ✅ `test_delete_nonexistent_profile_returns_404` — DELETE on missing returns 404
+
+#### Default Profile (2 tests)
+- ✅ `test_create_default_profile` — is_default=true works
+- ✅ `test_only_one_default_profile` — New default unsets previous
+
+#### Targets (2 tests)
+- ✅ `test_create_profile_with_multiple_targets` — 4 targets persisted
+- ✅ `test_create_profile_with_default_tolerance` — Missing tolerance uses config default
+
+#### Validation (2 tests)
+- ✅ `test_create_profile_empty_name_returns_422` — Empty name rejected
+- ✅ `test_create_profile_invalid_nutrient_key_returns_422` — Bad key returns 422
+
+#### Comparison (3 tests)
+- ✅ `test_compare_profile_to_recipe` — Full comparison with linked nutrition
+- ✅ `test_compare_nonexistent_profile_returns_404` — Missing profile returns 404
+- ✅ `test_compare_nonexistent_recipe_returns_404` — Missing recipe returns 404
+
+---
+
+### Profile Service Integration (7 tests)
+
+**File**: `tests/integration/test_profile_service.py`
+
+**Purpose**: End-to-end profile service tests with real database operations.
+
+**Tests**:
+- ✅ `test_create_profile` — Create with targets
+- ✅ `test_get_profile` — Retrieve by ID
+- ✅ `test_update_profile` — Update fields and replace targets
+- ✅ `test_delete_profile` — Soft delete hides profile
+- ✅ `test_default_profile` — Only one default at a time
+- ✅ `test_list_profiles` — List with pagination
+- ✅ `test_compare_nutrition` — Comparison logic with real profile
+
+---
+
 ## Running Tests
 
 ### All Tests
@@ -336,6 +441,18 @@ uv run pytest tests/unit/services/test_food_service_unit.py -v
 
 # Food schema validation (Phase 4)
 uv run pytest tests/unit/schemas/test_food_schemas.py -v
+
+# Profile endpoints (Phase 5)
+uv run pytest tests/api/test_profile_endpoints.py -v
+
+# Profile service unit tests (Phase 5)
+uv run pytest tests/unit/services/test_profile_service_unit.py -v
+
+# Profile schema validation (Phase 5)
+uv run pytest tests/unit/schemas/test_profile_schemas.py -v
+
+# Profile service integration (Phase 5)
+uv run pytest tests/integration/test_profile_service.py -v
 ```
 
 ### Coverage Report
@@ -367,20 +484,24 @@ uv run pytest tests/ --cov=meal_planner --cov-report=term-missing
 | `api/middleware.py` | 100% |
 | `api/schemas/recipe.py` | 100% |
 | `api/schemas/food.py` | 100% |
+| `api/schemas/profile.py` | 96% |
 | `api/schemas/common.py` | 100% |
 | `config.py` | 100% |
 | `main.py` | 100% |
 | `infra/search/fuzzy.py` | 100% |
 | `services/unit_conversion.py` | 100% |
 | `services/nutrition_calculator.py` | 99% |
+| `services/profile_service.py` | 92% |
 | `models/food.py` | 96% |
+| `models/profile.py` | 92% |
 | `models/recipe.py` | 94% |
-| `services/recipe_service.py` | 94% |
+| `repositories/profile_repository.py` | 95% |
 | `repositories/recipe_repository.py` | 92% |
+| `api/v1/profiles.py` | 73% |
 | `api/v1/food.py` | 66% |
 | `services/food_service.py` | 64% |
 | `repositories/food_repository.py` | 66% |
-| **Overall** | **83%** |
+| **Overall** | **85%** |
 
 ---
 
@@ -388,13 +509,13 @@ uv run pytest tests/ --cov=meal_planner --cov-report=term-missing
 
 | Metric | Value |
 |--------|-------|
-| **Total Tests** | 141 |
-| **Passing** | 141 (100%) |
+| **Total Tests** | 192 |
+| **Passing** | 192 (100%) |
 | **Failing** | 0 |
 | **Skipped** | 0 |
 | **Errors** | 0 |
-| **Execution Time** | ~0.8s |
-| **Modules Covered** | 13 test files across 3 layers |
+| **Execution Time** | ~1.6s |
+| **Modules Covered** | 17 test files across 3 layers |
 
 ---
 
@@ -406,6 +527,7 @@ tests/
 │   ├── conftest.py                        # In-memory DB fixtures, httpx client
 │   ├── test_recipe_endpoints.py           # 25 HTTP-level API tests
 │   ├── test_food_endpoints.py             # 18 food + nutrition API tests
+│   ├── test_profile_endpoints.py          # 17 profile API tests (Phase 5)
 │   └── test_error_handling.py             # 5 middleware/validation tests
 ├── unit/
 │   ├── services/
@@ -413,14 +535,18 @@ tests/
 │   │   ├── test_nutrition_calculator.py   # T011 (24 tests)
 │   │   ├── test_fuzzy_search.py           # T010 (10 tests)
 │   │   ├── test_recipe_service_unit.py    # 12 mock-based service tests
-│   │   └── test_food_service_unit.py      # 10 food service mock tests
+│   │   ├── test_food_service_unit.py      # 10 food service mock tests
+│   │   └── test_profile_service_unit.py   # 14 profile service tests (Phase 5)
 │   ├── schemas/
 │   │   ├── test_recipe_schemas.py         # 6 Pydantic validation tests
-│   │   └── test_food_schemas.py           # 7 food schema validation tests
+│   │   ├── test_food_schemas.py           # 7 food schema validation tests
+│   │   └── test_profile_schemas.py        # 11 profile schema tests (Phase 5)
 │   └── repository/
 │       └── test_session.py                # T008 (6 tests)
 ├── integration/
-│   └── test_recipe_service.py             # 7 service-layer integration tests
+│   ├── conftest.py                        # Shared DB fixtures for integration tests
+│   ├── test_recipe_service.py             # 7 service-layer integration tests
+│   └── test_profile_service.py            # 7 profile integration tests (Phase 5)
 └── TEST_REPORT.md
 ```
 

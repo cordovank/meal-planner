@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 # Import models so Base.metadata knows about all tables
 from meal_planner.repository.sqlalchemy.models.base import Base
 from meal_planner.repository.sqlalchemy.models.food import FoodEntry, NutritionRecord  # noqa: F401
+from meal_planner.repository.sqlalchemy.models.profile import Profile, ProfileTarget  # noqa: F401
 from meal_planner.repository.sqlalchemy.models.recipe import Recipe, RecipeIngredient, RecipeNote  # noqa: F401
 from meal_planner.repository.sqlalchemy.session import get_session
 from meal_planner.main import app
@@ -80,6 +81,27 @@ async def sample_recipe(client):
         ],
     }
     resp = await client.post("/api/v1/recipes", json=payload)
+    assert resp.status_code == 201
+    return resp.json()
+
+
+@pytest.fixture
+async def sample_profile(client):
+    """Create a profile with nutrition targets and return the response JSON."""
+    resp = await client.post(
+        "/api/v1/profiles",
+        json={
+            "name": "Test Profile",
+            "calorie_target": 2000,
+            "calorie_tolerance": 100,
+            "is_default": True,
+            "targets": {
+                "protein_g": {"target": 150, "tolerance": 15},
+                "fat_g": {"target": 70, "tolerance": 7},
+                "added_sugar_g": {"target": 25, "tolerance": 5},
+            },
+        },
+    )
     assert resp.status_code == 201
     return resp.json()
 

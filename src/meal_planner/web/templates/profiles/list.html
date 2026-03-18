@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Profiles{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <div class="header mb-8">
+    <h1 class="text-3xl font-bold mb-4">Nutrition Profiles</h1>
+    <a
+      href="/profiles/new"
+      class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+    >
+      Create Profile
+    </a>
+  </div>
+
+  <div id="profile-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for profile in profiles %}
+      <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
+        <div class="flex justify-between items-start mb-3">
+          <h2 class="text-xl font-bold">{{ profile.name }}</h2>
+          {% if profile.is_default %}
+            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">Default</span>
+          {% endif %}
+        </div>
+
+        {% if profile.calorie_target %}
+          <p class="text-gray-600 mb-2">
+            <span class="font-medium">Calories:</span> {{ profile.calorie_target }} kcal
+            <span class="text-gray-400">(±{{ profile.calorie_tolerance }})</span>
+          </p>
+        {% endif %}
+
+        {% if profile.targets %}
+          <div class="space-y-1 mb-4">
+            {% for target in profile.targets %}
+              <p class="text-sm text-gray-600">
+                <span class="font-medium">{{ target.nutrient_key }}:</span>
+                {{ target.target_value }} {{ target.unit }}
+                <span class="text-gray-400">(±{{ target.tolerance_value }})</span>
+              </p>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="flex gap-2 mt-4">
+          <a
+            href="/profiles/{{ profile.id }}"
+            class="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm transition"
+          >
+            View
+          </a>
+          <a
+            href="/profiles/{{ profile.id }}/edit"
+            class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm transition"
+          >
+            Edit
+          </a>
+          <button
+            hx-delete="/api/v1/profiles/{{ profile.id }}"
+            hx-confirm="Delete this profile?"
+            hx-target="closest div.bg-white"
+            hx-swap="outerHTML swap:0.5s"
+            class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm transition"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    {% else %}
+      <div class="col-span-full text-center py-12">
+        <p class="text-gray-500 text-lg mb-4">No profiles yet.</p>
+        <a href="/profiles/new" class="text-blue-600 hover:text-blue-800">Create your first profile</a>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

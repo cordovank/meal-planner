@@ -101,13 +101,13 @@
 
 ### Implementation for User Story 3
 
-- [ ] T032 [P] [US3] Create Profile and ProfileTarget models in src/meal_planner/repository/sqlalchemy/models/profile.py
-- [ ] T033 [P] [US3] Implement ProfileRepository protocol in src/meal_planner/repository/sqlalchemy/repositories/profile_repository.py
-- [ ] T034 [US3] Create ProfileService with target comparison logic in src/meal_planner/services/profile_service.py
-- [ ] T035 [P] [US3] Create Pydantic schemas for profile API in src/meal_planner/api/schemas/profile.py
-- [ ] T036 [US3] Implement profile API endpoints in src/meal_planner/api/v1/profiles.py
-- [ ] T037 [P] [US3] Add profile comparison to recipe detail template
-- [ ] T038 [P] [US3] Create profile management templates in src/meal_planner/web/templates/profiles/
+- [X] T032 [P] [US3] Create Profile and ProfileTarget models in src/meal_planner/repository/sqlalchemy/models/profile.py
+- [X] T033 [P] [US3] Implement ProfileRepository protocol in src/meal_planner/repository/sqlalchemy/repositories/profile_repository.py
+- [X] T034 [US3] Create ProfileService with target comparison logic in src/meal_planner/services/profile_service.py
+- [X] T035 [P] [US3] Create Pydantic schemas for profile API in src/meal_planner/api/schemas/profile.py
+- [X] T036 [US3] Implement profile API endpoints in src/meal_planner/api/v1/profiles.py
+- [X] T037 [P] [US3] Add profile comparison to recipe detail template
+- [X] T038 [P] [US3] Create profile management templates in src/meal_planner/web/templates/profiles/
 
 **Checkpoint**: User Story 3 complete - profiles support household nutrition goals
 
@@ -261,6 +261,6 @@
 **Validation & Commands**: See [VALIDATION.md](../../VALIDATION.md)  
 **Testing Strategy**: See [TESTING.md](./TESTING.md)
 
-Phase 1–4 includes **141 tests** across unit, integration, and API layers at 83% coverage.
+Phase 1–5 includes **192 tests** across unit, integration, and API layers at 85% coverage.
 
-All tests passing. ✅ Phase 4 complete. Ready for Phase 5 (User Story 3: Profiles).
+All tests passing. ✅ Phase 5 complete. Ready for Phase 6 (User Story 4: Meal Planning).

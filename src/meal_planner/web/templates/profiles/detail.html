@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}{{ profile.name }} - Profile{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex justify-between items-start mb-4">
+      <div>
+        <h1 class="text-4xl font-bold mb-2">{{ profile.name }}</h1>
+        {% if profile.is_default %}
+          <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">Default Profile</span>
+        {% endif %}
+      </div>
+      <div class="flex gap-3">
+        <a
+          href="/profiles/{{ profile.id }}/edit"
+          class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+        >
+          Edit
+        </a>
+        <button
+          hx-delete="/api/v1/profiles/{{ profile.id }}"
+          hx-confirm="Delete this profile?"
+          hx-redirect="/profiles"
+          class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <!-- Calorie Target -->
+    <section class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-2xl font-bold mb-4">Calorie Target</h2>
+      {% if profile.calorie_target %}
+        <div class="text-center">
+          <p class="text-5xl font-bold text-indigo-600">{{ profile.calorie_target }}</p>
+          <p class="text-gray-500 mt-1">kcal / day</p>
+          <p class="text-sm text-gray-400 mt-2">Tolerance: ±{{ profile.calorie_tolerance }} kcal</p>
+        </div>
+      {% else %}
+        <p class="text-gray-500">No calorie target set.</p>
+      {% endif %}
+    </section>
+
+    <!-- Macro Targets -->
+    <section class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-2xl font-bold mb-4">Nutrient Targets</h2>
+      {% if targets %}
+        <div class="space-y-4">
+          {% for target in targets %}
+            <div class="flex justify-between items-center pb-3 border-b last:border-b-0">
+              <div>
+                <p class="font-semibold text-gray-800">{{ target.nutrient_key }}</p>
+                <p class="text-xs text-gray-400">±{{ target.tolerance_value }} {{ target.unit }}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-2xl font-bold text-indigo-600">{{ target.target_value }}</p>
+                <p class="text-xs text-gray-500">{{ target.unit }}</p>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-gray-500">No nutrient targets set.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <!-- Metadata -->
+  <section class="bg-white rounded-lg shadow p-6 mt-8 max-w-md">
+    <h3 class="text-lg font-bold mb-3">Details</h3>
+    <dl class="space-y-2 text-sm">
+      <div class="flex justify-between">
+        <dt class="text-gray-600">Created</dt>
+        <dd>{{ profile.created_at.strftime('%Y-%m-%d') }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-gray-600">Last Updated</dt>
+        <dd>{{ profile.updated_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+      </div>
+    </dl>
+  </section>
+</div>
+{% endblock %}
