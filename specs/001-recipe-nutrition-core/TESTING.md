@@ -4,12 +4,12 @@
 
 ---
 
-## Phase 1–3 Testing (Complete for Recipe Core)
+## Phase 1–4 Testing (Complete for Recipe Core + Nutrition)
 
 **Status**: ✅ COMPLETE
 **Test Report**: [tests/TEST_REPORT.md](../../tests/TEST_REPORT.md)
 
-**Test Suites** (100 tests, all passing):
+**Test Suites** (141 tests, all passing):
 
 | Layer | Module | Tests | Status |
 |-------|--------|-------|--------|
@@ -21,6 +21,9 @@
 | Unit | `api/schemas/recipe.py` | 6 | ✅ PASS |
 | API | `api/v1/recipes.py` (HTTP endpoints) | 25 | ✅ PASS |
 | API | `api/middleware.py` (error handling) | 5 | ✅ PASS |
+| API | `api/v1/food.py` (food + nutrition endpoints) | 18 | ✅ PASS |
+| Unit | `services/food_service.py` (mock-based) | 10 | ✅ PASS |
+| Unit | `api/schemas/food.py` | 7 | ✅ PASS |
 | Integration | `services/recipe_service.py` (with DB) | 7 | ✅ PASS |
 
 **Run Tests**:

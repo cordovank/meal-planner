@@ -152,6 +152,7 @@ class RecipeNutritionBreakdownSchema(BaseSchema):
     per_serving: Optional[NutritionSchema] = None
     by_ingredient: list[dict[str, Any]] = Field(default_factory=list)
     confidence_overall: Optional[str] = None
+    characterization: list[str] = Field(default_factory=list)
     missing_data: list[str] = Field(default_factory=list)
 
 

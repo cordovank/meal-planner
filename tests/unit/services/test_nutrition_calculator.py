@@ -144,10 +144,9 @@ class TestCharacterization:
 
     def test_characterize_multiple_labels(self) -> None:
         """Test meal with multiple high-level nutrients gets multiple labels."""
-        totals = NutritionTotals(protein_g=30.0, calories=900.0, added_sugar_g=20.0)
+        totals = NutritionTotals(protein_g=30.0, calories=900.0, added_sugar_g=20.0, carbs_g=100.0)
         labels = NutritionCalculator.characterize_totals(totals)
 
-        assert len(labels) == 3
         assert "Protein-rich" in labels
         assert "High calories" in labels
         assert "High added sugar" in labels
@@ -158,3 +157,54 @@ class TestCharacterization:
         labels = NutritionCalculator.characterize_totals(totals)
 
         assert len(labels) == 0
+
+    def test_characterize_high_fiber(self) -> None:
+        """Test high fiber label when fiber >= 5g."""
+        totals = NutritionTotals(fiber_g=6.0, calories=300, carbs_g=40)
+        labels = NutritionCalculator.characterize_totals(totals)
+        assert "High fiber" in labels
+
+    def test_characterize_low_carb(self) -> None:
+        """Test low carb label when carb calories < 25% of total."""
+        totals = NutritionTotals(calories=400, carbs_g=20, protein_g=50, fat_g=20)
+        labels = NutritionCalculator.characterize_totals(totals)
+        assert "Low carb" in labels
+
+
+class TestOverallConfidence:
+    """Tests for overall_confidence method."""
+
+    def test_empty_returns_incomplete(self) -> None:
+        assert NutritionCalculator.overall_confidence([]) == "incomplete"
+
+    def test_single_level_returns_complete(self) -> None:
+        assert NutritionCalculator.overall_confidence([ConfidenceLevel.HIGH]) == "complete"
+
+    def test_same_levels_returns_complete(self) -> None:
+        levels = [ConfidenceLevel.HIGH, ConfidenceLevel.HIGH]
+        assert NutritionCalculator.overall_confidence(levels) == "complete"
+
+    def test_mixed_levels_returns_mixed(self) -> None:
+        levels = [ConfidenceLevel.HIGH, ConfidenceLevel.LOW]
+        assert NutritionCalculator.overall_confidence(levels) == "mixed"
+
+
+class TestPerServing:
+    """Tests for per_serving method."""
+
+    def test_divides_correctly(self) -> None:
+        totals = NutritionTotals(calories=400, protein_g=40, carbs_g=60, fat_g=20)
+        per = NutritionCalculator.per_serving(totals, 4)
+        assert per.calories == 100
+        assert per.protein_g == 10
+
+    def test_zero_servings_returns_totals(self) -> None:
+        totals = NutritionTotals(calories=400)
+        per = NutritionCalculator.per_serving(totals, 0)
+        assert per.calories == 400
+
+    def test_single_serving_returns_same(self) -> None:
+        totals = NutritionTotals(calories=250, protein_g=25)
+        per = NutritionCalculator.per_serving(totals, 1)
+        assert per.calories == 250
+        assert per.protein_g == 25

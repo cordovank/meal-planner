@@ -1,7 +1,7 @@
 # Validation & Commands Reference
 
 **Date**: 2026-03-18
-**Status**: ✅ Phase 1–3 Validated
+**Status**: ✅ Phase 1–4 Validated
 
 ---
 
@@ -80,13 +80,13 @@ sqlite3 src/meal_planner.db "SELECT * FROM alembic_version;"
 ```bash
 uv run pytest tests/ --tb=short
 ```
-*Result*: ✅ All 100 tests pass in ~0.7s
+*Result*: ✅ All 141 tests pass in ~0.8s
 
 **Coverage Report**:
 ```bash
 uv run pytest tests/ --cov=meal_planner --cov-report=term-missing
 ```
-*Result*: ✅ 89% overall coverage
+*Result*: ✅ 83% overall coverage
 
 ---
 
@@ -354,6 +354,102 @@ Expected: `201 Created`
 curl -X DELETE http://localhost:8000/api/v1/recipes/notes/{note_id}
 ```
 Expected: `204 No Content`
+
+---
+
+### Food Library (Phase 4)
+
+#### Create a Food Entry (POST /api/v1/food)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/food \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Chicken Breast", "category": "protein", "is_custom": true}'
+```
+Expected: `201 Created`
+```json
+{"id": "<uuid>", "name": "Chicken Breast", "source_type": "user_created", "is_custom": true, "created_at": "..."}
+```
+
+#### Add Nutrition to a Food Entry (POST /api/v1/food/{id}/nutrition)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/food/{food_id}/nutrition \
+  -H "Content-Type: application/json" \
+  -d '{
+    "serving_size": 100,
+    "serving_unit": "g",
+    "calories": 165,
+    "protein_g": 31,
+    "carbohydrates_g": 0,
+    "fat_g": 3.6,
+    "added_sugar_g": 0,
+    "source_type": "user_confirmed",
+    "fiber_g": 0,
+    "sodium_mg": 74
+  }'
+```
+Expected: `201 Created`
+
+#### Get Food Entry with Nutrition (GET /api/v1/food/{id})
+
+```bash
+curl http://localhost:8000/api/v1/food/{food_id}
+```
+Expected: `200 OK` — includes `nutrition_records` array
+
+#### List/Search Food Entries (GET /api/v1/food)
+
+```bash
+curl "http://localhost:8000/api/v1/food?q=chicken"
+```
+
+---
+
+### Recipe Nutrition (Phase 4)
+
+#### Get Recipe Nutrition Breakdown (GET /api/v1/recipes/{id}/nutrition)
+
+Requires ingredients to be linked to food entries via `food_entry_id`.
+
+**Create a recipe with linked ingredient:**
+```bash
+curl -X POST http://localhost:8000/api/v1/recipes \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Grilled Chicken",
+    "base_servings": 2,
+    "ingredients": [
+      {"name": "Chicken Breast", "amount": 200, "unit": "g", "food_entry_id": "<food_entry_uuid>"}
+    ]
+  }'
+```
+
+**Get nutrition breakdown:**
+```bash
+curl http://localhost:8000/api/v1/recipes/{recipe_id}/nutrition
+```
+Expected: `200 OK`
+```json
+{
+  "total": {"calories": 330, "protein_g": 62, "carbohydrates_g": 0, "fat_g": 7.2, "added_sugar_g": 0, ...},
+  "per_serving": {"calories": 165, "protein_g": 31, ...},
+  "by_ingredient": [
+    {"ingredient_name": "Chicken Breast", "amount": 200, "unit": "g", "nutrition": {...}, "confidence": "low"}
+  ],
+  "confidence_overall": "complete",
+  "characterization": ["Protein-rich"],
+  "missing_data": []
+}
+```
+
+**Unlinked ingredients show in missing_data:**
+```json
+{
+  "missing_data": ["Olive Oil - no nutrition linked"],
+  "confidence_overall": "incomplete"
+}
+```
 
 ---
 

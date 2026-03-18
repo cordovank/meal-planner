@@ -19,7 +19,9 @@ from meal_planner.api.schemas.recipe import (
     RecipeScaleResponseSchema,
     RecipeUpdateSchema,
 )
+from meal_planner.api.schemas.recipe import RecipeNutritionBreakdownSchema
 from meal_planner.repository.sqlalchemy.models.recipe import RecipeIngredient, RecipeNote
+from meal_planner.repository.sqlalchemy.repositories.food_repository import SQLAlchemyFoodRepository
 from meal_planner.repository.sqlalchemy.repositories.recipe_repository import SQLAlchemyRecipeRepository
 from meal_planner.repository.sqlalchemy.session import get_session
 from meal_planner.services.recipe_service import RecipeService
@@ -29,8 +31,9 @@ router = APIRouter(tags=["recipes"])
 
 async def get_recipe_service(session: AsyncSession = Depends(get_session)) -> RecipeService:
     """Dependency for recipe service."""
-    repo = SQLAlchemyRecipeRepository(session)
-    return RecipeService(repo)
+    recipe_repo = SQLAlchemyRecipeRepository(session)
+    food_repo = SQLAlchemyFoodRepository(session)
+    return RecipeService(recipe_repo, food_repo=food_repo)
 
 
 @router.get("/api/v1/recipes", response_model=RecipeListResponseSchema)
@@ -109,7 +112,7 @@ async def create_recipe(
             name=ing.name,
             amount=ing.amount,
             unit=ing.unit,
-            food_entry_id=ing.food_entry_id,
+            food_entry_id=str(ing.food_entry_id) if ing.food_entry_id else None,
             to_taste=ing.to_taste,
             optional=ing.optional,
             notes=ing.notes,
@@ -301,7 +304,7 @@ async def add_ingredient(
         name=data.name,
         amount=data.amount,
         unit=data.unit,
-        food_entry_id=data.food_entry_id,
+        food_entry_id=str(data.food_entry_id) if data.food_entry_id else None,
         to_taste=data.to_taste,
         optional=data.optional,
         notes=data.notes,
@@ -330,7 +333,7 @@ async def update_ingredient(
         name=data.name,
         amount=data.amount,
         unit=data.unit,
-        food_entry_id=data.food_entry_id,
+        food_entry_id=str(data.food_entry_id) if data.food_entry_id else None,
         to_taste=data.to_taste,
         optional=data.optional,
         notes=data.notes,
@@ -386,3 +389,23 @@ async def remove_note(
     success = await service.remove_note(note_id)
     if not success:
         raise HTTPException(status_code=404, detail="Note not found")
+
+
+@router.get("/api/v1/recipes/{recipe_id}/nutrition", response_model=RecipeNutritionBreakdownSchema)
+async def get_recipe_nutrition(
+    recipe_id: str,
+    service: RecipeService = Depends(get_recipe_service),
+) -> RecipeNutritionBreakdownSchema:
+    """Get detailed nutrition breakdown for a recipe."""
+    result = await service.get_recipe_nutrition(recipe_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+
+    return RecipeNutritionBreakdownSchema(
+        total=result["total"],
+        per_serving=result["per_serving"],
+        by_ingredient=result["by_ingredient"],
+        confidence_overall=result["confidence_overall"],
+        characterization=result.get("characterization", []),
+        missing_data=result["missing_data"],
+    )

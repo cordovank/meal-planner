@@ -73,7 +73,9 @@ class RecipeIngredient(Base):
     __allow_unmapped__ = True
 
     recipe_id: str = Column(String(36), ForeignKey("recipe.id"), nullable=False, index=True)
-    food_entry_id: str | None = Column(String(36), nullable=True, index=True)
+    food_entry_id: str | None = Column(
+        String(36), ForeignKey("food_entry.id"), nullable=True, index=True
+    )
     name: str = Column(String(100), nullable=False)
     amount: Decimal | None = Column(Numeric(10, 3), nullable=True)
     unit: str | None = Column(String(50), nullable=True)

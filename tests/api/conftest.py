@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 
 # Import models so Base.metadata knows about all tables
 from meal_planner.repository.sqlalchemy.models.base import Base
+from meal_planner.repository.sqlalchemy.models.food import FoodEntry, NutritionRecord  # noqa: F401
 from meal_planner.repository.sqlalchemy.models.recipe import Recipe, RecipeIngredient, RecipeNote  # noqa: F401
 from meal_planner.repository.sqlalchemy.session import get_session
 from meal_planner.main import app
@@ -81,3 +82,33 @@ async def sample_recipe(client):
     resp = await client.post("/api/v1/recipes", json=payload)
     assert resp.status_code == 201
     return resp.json()
+
+
+@pytest.fixture
+async def sample_food_entry(client):
+    """Create a food entry with nutrition data and return the response JSON."""
+    # Create food entry
+    entry_resp = await client.post(
+        "/api/v1/food",
+        json={"name": "Chicken Breast", "category": "protein", "is_custom": True},
+    )
+    assert entry_resp.status_code == 201
+    entry = entry_resp.json()
+
+    # Add nutrition record
+    nutr_resp = await client.post(
+        f"/api/v1/food/{entry['id']}/nutrition",
+        json={
+            "serving_size": 100,
+            "serving_unit": "g",
+            "calories": 165,
+            "protein_g": 31,
+            "carbohydrates_g": 0,
+            "fat_g": 3.6,
+            "added_sugar_g": 0,
+            "source_type": "user_confirmed",
+        },
+    )
+    assert nutr_resp.status_code == 201
+
+    return entry

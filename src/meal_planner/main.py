@@ -22,8 +22,9 @@ def create_app() -> FastAPI:
     register_api_middleware(app)
 
     # Register API routers
-    from meal_planner.api.v1 import recipes_router
+    from meal_planner.api.v1 import food_router, recipes_router
     app.include_router(recipes_router)
+    app.include_router(food_router)
 
     return app
 

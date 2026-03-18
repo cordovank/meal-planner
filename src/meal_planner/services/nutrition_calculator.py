@@ -56,6 +56,10 @@ class NutritionTotals:
     carbs_g: float = 0.0
     fat_g: float = 0.0
     added_sugar_g: float = 0.0
+    fiber_g: float = 0.0
+    total_sugar_g: float = 0.0
+    sodium_mg: float = 0.0
+    saturated_fat_g: float = 0.0
 
 
 class NutritionCalculator:
@@ -73,6 +77,10 @@ class NutritionCalculator:
                 carbs_g=totals.carbs_g + record.carbs_g,
                 fat_g=totals.fat_g + record.fat_g,
                 added_sugar_g=totals.added_sugar_g + record.added_sugar_g,
+                fiber_g=totals.fiber_g + getattr(record, "fiber_g", 0) or 0,
+                total_sugar_g=totals.total_sugar_g + getattr(record, "total_sugar_g", 0) or 0,
+                sodium_mg=totals.sodium_mg + getattr(record, "sodium_mg", 0) or 0,
+                saturated_fat_g=totals.saturated_fat_g + getattr(record, "saturated_fat_g", 0) or 0,
             )
         return totals
 
@@ -99,4 +107,38 @@ class NutritionCalculator:
             labels.append("High calories")
         if totals.added_sugar_g > 15:
             labels.append("High added sugar")
+        if totals.fiber_g >= 5:
+            labels.append("High fiber")
+        if totals.calories > 0 and totals.carbs_g * 4 / totals.calories < 0.25:
+            labels.append("Low carb")
         return labels
+
+    @staticmethod
+    def overall_confidence(confidence_levels: list[ConfidenceLevel]) -> str:
+        """Determine overall confidence from a list of per-ingredient levels.
+
+        Returns 'complete', 'mixed', or 'incomplete'.
+        """
+        if not confidence_levels:
+            return "incomplete"
+        unique = set(confidence_levels)
+        if len(unique) == 1:
+            return "complete"
+        return "mixed"
+
+    @staticmethod
+    def per_serving(totals: NutritionTotals, servings: int) -> NutritionTotals:
+        """Divide totals by number of servings."""
+        if servings <= 0:
+            return totals
+        return NutritionTotals(
+            calories=round(totals.calories / servings, 2),
+            protein_g=round(totals.protein_g / servings, 2),
+            carbs_g=round(totals.carbs_g / servings, 2),
+            fat_g=round(totals.fat_g / servings, 2),
+            added_sugar_g=round(totals.added_sugar_g / servings, 2),
+            fiber_g=round(totals.fiber_g / servings, 2),
+            total_sugar_g=round(totals.total_sugar_g / servings, 2),
+            sodium_mg=round(totals.sodium_mg / servings, 2),
+            saturated_fat_g=round(totals.saturated_fat_g / servings, 2),
+        )

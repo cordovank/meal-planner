@@ -80,14 +80,14 @@
 
 ### Implementation for User Story 2
 
-- [ ] T024 [P] [US2] Create FoodEntry and NutritionRecord models in src/meal_planner/repository/sqlalchemy/models/food.py
-- [ ] T025 [P] [US2] Implement FoodRepository protocol in src/meal_planner/repository/sqlalchemy/repositories/food_repository.py
-- [ ] T026 [US2] Extend RecipeService with nutrition calculation methods
-- [ ] T027 [P] [US2] Create Pydantic schemas for food/nutrition API in src/meal_planner/api/schemas/food.py
-- [ ] T028 [US2] Implement food library API endpoints in src/meal_planner/api/v1/food.py
-- [ ] T029 [P] [US2] Add nutrition confidence indicators to recipe display templates
-- [ ] T030 [P] [US2] Implement meal characterization labels in nutrition calculator
-- [ ] T031 [P] [US2] Create ingredient linking interface in recipe form template
+- [X] T024 [P] [US2] Create FoodEntry and NutritionRecord models in src/meal_planner/repository/sqlalchemy/models/food.py
+- [X] T025 [P] [US2] Implement FoodRepository protocol in src/meal_planner/repository/sqlalchemy/repositories/food_repository.py
+- [X] T026 [US2] Extend RecipeService with nutrition calculation methods
+- [X] T027 [P] [US2] Create Pydantic schemas for food/nutrition API in src/meal_planner/api/schemas/food.py
+- [X] T028 [US2] Implement food library API endpoints in src/meal_planner/api/v1/food.py
+- [X] T029 [P] [US2] Add nutrition confidence indicators to recipe nutrition endpoint
+- [X] T030 [P] [US2] Implement meal characterization labels in nutrition calculator
+- [X] T031 [P] [US2] Create ingredient linking via food_entry_id on recipe ingredients
 
 **Checkpoint**: User Story 2 complete - nutrition displays with confidence and labels
 
@@ -261,6 +261,6 @@
 **Validation & Commands**: See [VALIDATION.md](../../VALIDATION.md)  
 **Testing Strategy**: See [TESTING.md](./TESTING.md)
 
-Phase 1–3 includes **100 tests** (63 unit + 7 integration + 30 API endpoint) at 89% coverage.
+Phase 1–4 includes **141 tests** across unit, integration, and API layers at 83% coverage.
 
-All tests passing. ✅ Phase 3 complete. Ready for Phase 4 (User Story 2: Nutrition).
+All tests passing. ✅ Phase 4 complete. Ready for Phase 5 (User Story 3: Profiles).

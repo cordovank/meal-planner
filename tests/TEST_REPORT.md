@@ -8,12 +8,12 @@
 
 ## Summary
 
-All Phase 1–3 tests passing. **100 tests** across 9 test modules validate core infrastructure, recipe functionality, API endpoints, error handling, and schema validation.
+All Phase 1–4 tests passing. **141 tests** across 13 test modules validate core infrastructure, recipe functionality, food library, nutrition calculations, API endpoints, error handling, and schema validation.
 
 | Phase | Module | Tests | Status | Coverage |
 |-------|--------|-------|--------|----------|
 | 2     | `services/unit_conversion.py` | 14 | ✅ PASS | Gram/oz, ml/cup/tsp/tbsp conversions |
-| 2     | `services/nutrition_calculator.py` | 15 | ✅ PASS | Aggregation, confidence, characterization |
+| 2     | `services/nutrition_calculator.py` | 24 | ✅ PASS | Aggregation, confidence, characterization, per-serving |
 | 2     | `infra/search/fuzzy.py` | 10 | ✅ PASS | Exact/partial matching, scoring, limits |
 | 2     | `repository/sqlalchemy/session.py` | 6 | ✅ PASS | Engine/sessionmaker singletons, config |
 | 3     | `services/recipe_service.py` (integration) | 7 | ✅ PASS | CRUD, scaling, duplication, search |
@@ -21,6 +21,9 @@ All Phase 1–3 tests passing. **100 tests** across 9 test modules validate core
 | 3     | `api/middleware.py` (error handling) | 5 | ✅ PASS | Error envelopes, validation rejection |
 | 3     | `services/recipe_service.py` (unit) | 12 | ✅ PASS | Service branch coverage with mocks |
 | 3     | `api/schemas/recipe.py` | 6 | ✅ PASS | Pydantic validation rules |
+| 4     | `api/v1/food.py` (HTTP endpoints) | 18 | ✅ PASS | Food CRUD, nutrition, recipe nutrition breakdown |
+| 4     | `services/food_service.py` (unit) | 10 | ✅ PASS | Food service branch coverage with mocks |
+| 4     | `api/schemas/food.py` | 7 | ✅ PASS | Food/nutrition schema validation |
 
 ---
 
@@ -324,6 +327,15 @@ uv run pytest tests/api/test_recipe_endpoints.py -v
 
 # Error handling
 uv run pytest tests/api/test_error_handling.py -v
+
+# Food endpoints (Phase 4)
+uv run pytest tests/api/test_food_endpoints.py -v
+
+# Food service unit tests (Phase 4)
+uv run pytest tests/unit/services/test_food_service_unit.py -v
+
+# Food schema validation (Phase 4)
+uv run pytest tests/unit/schemas/test_food_schemas.py -v
 ```
 
 ### Coverage Report
@@ -354,16 +366,21 @@ uv run pytest tests/ --cov=meal_planner --cov-report=term-missing
 |--------|----------|
 | `api/middleware.py` | 100% |
 | `api/schemas/recipe.py` | 100% |
+| `api/schemas/food.py` | 100% |
 | `api/schemas/common.py` | 100% |
 | `config.py` | 100% |
 | `main.py` | 100% |
 | `infra/search/fuzzy.py` | 100% |
 | `services/unit_conversion.py` | 100% |
-| `services/nutrition_calculator.py` | 98% |
+| `services/nutrition_calculator.py` | 99% |
+| `models/food.py` | 96% |
+| `models/recipe.py` | 94% |
 | `services/recipe_service.py` | 94% |
-| `repository/sqlalchemy/models/recipe.py` | 94% |
-| `repository/sqlalchemy/repositories/recipe_repository.py` | 92% |
-| **Overall** | **89%** |
+| `repositories/recipe_repository.py` | 92% |
+| `api/v1/food.py` | 66% |
+| `services/food_service.py` | 64% |
+| `repositories/food_repository.py` | 66% |
+| **Overall** | **83%** |
 
 ---
 
@@ -371,13 +388,13 @@ uv run pytest tests/ --cov=meal_planner --cov-report=term-missing
 
 | Metric | Value |
 |--------|-------|
-| **Total Tests** | 100 |
-| **Passing** | 100 (100%) |
+| **Total Tests** | 141 |
+| **Passing** | 141 (100%) |
 | **Failing** | 0 |
 | **Skipped** | 0 |
 | **Errors** | 0 |
-| **Execution Time** | ~0.7s |
-| **Modules Covered** | 9 test files across 3 layers |
+| **Execution Time** | ~0.8s |
+| **Modules Covered** | 13 test files across 3 layers |
 
 ---
 
@@ -388,15 +405,18 @@ tests/
 ├── api/
 │   ├── conftest.py                        # In-memory DB fixtures, httpx client
 │   ├── test_recipe_endpoints.py           # 25 HTTP-level API tests
+│   ├── test_food_endpoints.py             # 18 food + nutrition API tests
 │   └── test_error_handling.py             # 5 middleware/validation tests
 ├── unit/
 │   ├── services/
 │   │   ├── test_unit_conversion.py        # T009 (14 tests)
-│   │   ├── test_nutrition_calculator.py   # T011 (15 tests)
+│   │   ├── test_nutrition_calculator.py   # T011 (24 tests)
 │   │   ├── test_fuzzy_search.py           # T010 (10 tests)
-│   │   └── test_recipe_service_unit.py    # 12 mock-based service tests
+│   │   ├── test_recipe_service_unit.py    # 12 mock-based service tests
+│   │   └── test_food_service_unit.py      # 10 food service mock tests
 │   ├── schemas/
-│   │   └── test_recipe_schemas.py         # 6 Pydantic validation tests
+│   │   ├── test_recipe_schemas.py         # 6 Pydantic validation tests
+│   │   └── test_food_schemas.py           # 7 food schema validation tests
 │   └── repository/
 │       └── test_session.py                # T008 (6 tests)
 ├── integration/

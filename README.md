@@ -49,7 +49,8 @@ See [VALIDATION.md](VALIDATION.md) for the full API testing reference with curl 
 ## Project Status
 
 - ✅ **Phase 1–3**: Recipe management with full CRUD, scaling, duplication, search, and notes
-- ⏭️ **Phase 4**: Nutrition data integration (User Story 2)
-- 📋 **Testing**: 100 automated tests (89% coverage) — 63 unit + 7 integration + 30 API endpoint tests
+- ✅ **Phase 4**: Nutrition data integration — food library, nutrition records, recipe nutrition breakdown with confidence and characterization
+- ⏭️ **Phase 5**: Personal profiles with nutrition goals (User Story 3)
+- 📋 **Testing**: 141 automated tests (83% coverage) across unit, integration, and API layers
 
 See [specs/](specs/) for detailed requirements and [tests/TEST_REPORT.md](tests/TEST_REPORT.md) for test coverage.

@@ -19,8 +19,9 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 from meal_planner.repository.sqlalchemy.models import Base
 
-# NOTE: `Base.metadata` should include all mapped models.
-# This enables Alembic autogenerate to detect schema changes.
+# Import all models so Base.metadata includes their tables for autogenerate.
+from meal_planner.repository.sqlalchemy.models.recipe import Recipe, RecipeIngredient, RecipeNote  # noqa: F401
+from meal_planner.repository.sqlalchemy.models.food import FoodEntry, NutritionRecord  # noqa: F401
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

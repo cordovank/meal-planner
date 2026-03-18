@@ -7,15 +7,22 @@ from decimal import Decimal
 from typing import Optional
 
 from meal_planner.repository.sqlalchemy.models.recipe import Recipe, RecipeIngredient, RecipeNote, RecipeState
+from meal_planner.repository.sqlalchemy.repositories.food_repository import FoodRepositoryProtocol
 from meal_planner.repository.sqlalchemy.repositories.recipe_repository import RecipeRepositoryProtocol
+from meal_planner.services.nutrition_calculator import ConfidenceLevel, NutritionCalculator, NutritionTotals
 
 
 class RecipeService:
     """Service for recipe operations."""
 
-    def __init__(self, recipe_repo: RecipeRepositoryProtocol):
+    def __init__(
+        self,
+        recipe_repo: RecipeRepositoryProtocol,
+        food_repo: Optional[FoodRepositoryProtocol] = None,
+    ):
         """Initialize service with repository."""
         self.recipe_repo = recipe_repo
+        self.food_repo = food_repo
 
     async def get_recipe(self, recipe_id: str) -> Optional[Recipe]:
         """Get a recipe by ID."""
@@ -297,3 +304,140 @@ class RecipeService:
             "ingredients": ingredients,
             "notes": notes,
         }
+
+    async def get_recipe_nutrition(self, recipe_id: str) -> Optional[dict]:
+        """Calculate full nutrition breakdown for a recipe.
+
+        Returns total/per-serving nutrition, per-ingredient contributions,
+        overall confidence, characterization labels, and missing data.
+        Requires food_repo to be set.
+        """
+        if not self.food_repo:
+            return None
+
+        recipe = await self.recipe_repo.get_by_id(recipe_id)
+        if not recipe:
+            return None
+
+        ingredients = await self.recipe_repo.get_ingredients(recipe_id)
+
+        by_ingredient = []
+        missing_data = []
+        confidence_levels = []
+        nutrition_records_for_total = []
+
+        for ing in ingredients:
+            if not ing.food_entry_id:
+                missing_data.append(f"{ing.name} - no nutrition linked")
+                continue
+
+            records = await self.food_repo.get_nutrition_records(ing.food_entry_id)
+            if not records:
+                missing_data.append(f"{ing.name} - no nutrition data")
+                continue
+
+            # Use first nutrition record and scale by ingredient amount
+            record = records[0]
+            scale_factor = 1.0
+            if ing.amount and record.serving_size and float(record.serving_size) > 0:
+                scale_factor = float(ing.amount) / float(record.serving_size)
+
+            scaled = _scale_record(record, scale_factor)
+            nutrition_records_for_total.append(scaled)
+
+            # Map DB source_type to calculator confidence
+            from meal_planner.services.nutrition_calculator import NutritionSourceType as CalcSourceType
+            source_map = {
+                "label": CalcSourceType.THIRD_PARTY,
+                "barcode": CalcSourceType.THIRD_PARTY,
+                "user_confirmed": CalcSourceType.USER_ENTERED,
+                "estimated": CalcSourceType.USER_ENTERED,
+                "calculated": CalcSourceType.THIRD_PARTY,
+            }
+            calc_source = source_map.get(
+                str(record.source_type.value if hasattr(record.source_type, 'value') else record.source_type),
+                CalcSourceType.USER_ENTERED,
+            )
+
+            class _MockRecord:
+                def __init__(self, src):
+                    self.source_type = src
+
+            confidence = NutritionCalculator.confidence_for_record(_MockRecord(calc_source))
+            confidence_levels.append(confidence)
+
+            by_ingredient.append({
+                "ingredient_name": ing.name,
+                "amount": float(ing.amount) if ing.amount else None,
+                "unit": ing.unit,
+                "nutrition": {
+                    "calories": scaled.calories,
+                    "protein_g": scaled.protein_g,
+                    "carbohydrates_g": scaled.carbs_g,
+                    "fat_g": scaled.fat_g,
+                    "added_sugar_g": scaled.added_sugar_g,
+                    "fiber_g": scaled.fiber_g,
+                    "total_sugar_g": scaled.total_sugar_g,
+                    "sodium_mg": scaled.sodium_mg,
+                    "saturated_fat_g": scaled.saturated_fat_g,
+                },
+                "confidence": confidence.value,
+            })
+
+        # Aggregate totals
+        total = NutritionTotals()
+        for rec in nutrition_records_for_total:
+            total = NutritionTotals(
+                calories=total.calories + rec.calories,
+                protein_g=total.protein_g + rec.protein_g,
+                carbs_g=total.carbs_g + rec.carbs_g,
+                fat_g=total.fat_g + rec.fat_g,
+                added_sugar_g=total.added_sugar_g + rec.added_sugar_g,
+                fiber_g=total.fiber_g + rec.fiber_g,
+                total_sugar_g=total.total_sugar_g + rec.total_sugar_g,
+                sodium_mg=total.sodium_mg + rec.sodium_mg,
+                saturated_fat_g=total.saturated_fat_g + rec.saturated_fat_g,
+            )
+
+        per_serving = NutritionCalculator.per_serving(total, recipe.base_servings)
+        overall_confidence = NutritionCalculator.overall_confidence(confidence_levels)
+        characterization = NutritionCalculator.characterize_totals(per_serving)
+
+        return {
+            "total": _totals_to_dict(total),
+            "per_serving": _totals_to_dict(per_serving),
+            "by_ingredient": by_ingredient,
+            "confidence_overall": overall_confidence,
+            "characterization": characterization,
+            "missing_data": missing_data,
+        }
+
+
+def _scale_record(record, factor: float) -> NutritionTotals:
+    """Scale a NutritionRecord by a factor and return NutritionTotals."""
+    return NutritionTotals(
+        calories=round(float(record.calories) * factor, 2),
+        protein_g=round(float(record.protein_g) * factor, 2),
+        carbs_g=round(float(record.carbohydrates_g) * factor, 2),
+        fat_g=round(float(record.fat_g) * factor, 2),
+        added_sugar_g=round(float(record.added_sugar_g) * factor, 2),
+        fiber_g=round(float(record.fiber_g or 0) * factor, 2),
+        total_sugar_g=round(float(record.total_sugar_g or 0) * factor, 2),
+        sodium_mg=round(float(record.sodium_mg or 0) * factor, 2),
+        saturated_fat_g=round(float(record.saturated_fat_g or 0) * factor, 2),
+    )
+
+
+def _totals_to_dict(totals: NutritionTotals) -> dict:
+    """Convert NutritionTotals to a serializable dict."""
+    return {
+        "calories": totals.calories,
+        "protein_g": totals.protein_g,
+        "carbohydrates_g": totals.carbs_g,
+        "fat_g": totals.fat_g,
+        "added_sugar_g": totals.added_sugar_g,
+        "fiber_g": totals.fiber_g,
+        "total_sugar_g": totals.total_sugar_g,
+        "sodium_mg": totals.sodium_mg,
+        "saturated_fat_g": totals.saturated_fat_g,
+    }
