@@ -242,19 +242,31 @@ class RecipeService:
         """Search recipes by title/description."""
         return await self.recipe_repo.search(query, limit=limit)
 
-    def scale_recipe(self, recipe: Recipe, new_servings: int) -> dict[str, any]:
+    def scale_recipe(
+        self,
+        recipe: Recipe,
+        new_servings: int,
+        ingredients: list | None = None,
+    ) -> dict[str, any]:
         """Calculate scaled ingredients for a recipe.
-        
+
         Returns a dict with scaling factor and scaled ingredients.
         This is a synchronous calculation method.
+
+        Args:
+            recipe: The recipe to scale.
+            new_servings: Target number of servings.
+            ingredients: Pre-loaded ingredient list. If None, falls back to
+                recipe.ingredients (requires eagerly loaded relationship).
         """
         if recipe.base_servings == 0:
             return {"factor": 1.0, "ingredients": []}
 
         factor = Decimal(new_servings) / Decimal(recipe.base_servings)
 
+        ingredient_list = ingredients if ingredients is not None else recipe.ingredients
         scaled_ingredients = []
-        for ing in recipe.ingredients:
+        for ing in ingredient_list:
             scaled_ing = {
                 "id": ing.id,
                 "name": ing.name,

@@ -261,6 +261,6 @@
 **Validation & Commands**: See [VALIDATION.md](../../VALIDATION.md)  
 **Testing Strategy**: See [TESTING.md](./TESTING.md)
 
-Phase 1–2 foundations include **45 unit tests** covering critical business logic (nutrition, conversions, search, sessions).
+Phase 1–3 includes **100 tests** (63 unit + 7 integration + 30 API endpoint) at 89% coverage.
 
-All tests passing. ✅ Ready for Phase 3 (User Story 1: Recipe CRUD).
+All tests passing. ✅ Phase 3 complete. Ready for Phase 4 (User Story 2: Nutrition).

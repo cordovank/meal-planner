@@ -1,7 +1,7 @@
 # Validation & Commands Reference
 
-**Date**: 2026-03-17  
-**Status**: ✅ Phase 1–3 Validated  
+**Date**: 2026-03-18
+**Status**: ✅ Phase 1–3 Validated
 
 ---
 
@@ -9,39 +9,39 @@
 
 ### Run All Tests
 ```bash
-./.venv/bin/python -m pytest tests/ -v
+uv run pytest tests/ -v
 ```
 
 ### Run Application (Development)
 ```bash
-./.venv/bin/python -m uvicorn meal_planner.main:app --reload
+uv run uvicorn meal_planner.main:app --reload
 ```
 
 ### Database Migrations
 
 #### Check Current State
 ```bash
-./.venv/bin/python -m alembic -c alembic.ini current
+uv run alembic -c alembic.ini current
 ```
 
 #### Apply Latest Migration
 ```bash
-./.venv/bin/python -m alembic -c alembic.ini upgrade head
+uv run alembic -c alembic.ini upgrade head
 ```
 
 #### Create New Migration (after model changes)
 ```bash
-./.venv/bin/python -m alembic -c alembic.ini revision --autogenerate -m "Description of changes"
+uv run alembic -c alembic.ini revision --autogenerate -m "Description of changes"
 ```
 
 #### Downgrade (revert last migration)
 ```bash
-./.venv/bin/python -m alembic -c alembic.ini downgrade -1
+uv run alembic -c alembic.ini downgrade -1
 ```
 
 #### View Migration History
 ```bash
-./.venv/bin/python -m alembic -c alembic.ini history
+uv run alembic -c alembic.ini history
 ```
 
 ---
@@ -68,13 +68,7 @@ uv run python -c "from meal_planner.main import app; print('✓ FastAPI app init
 ```bash
 sqlite3 src/meal_planner.db ".schema recipe"
 ```
-*Result*: ✅ Recipe tables created with correct schema (id, name, description, servings, prep_time_minutes, cook_time_minutes, instructions, state, timestamps, soft delete)
-
-**Database Indexes Check**:
-```bash
-sqlite3 src/meal_planner.db ".indexes recipe"
-```
-*Result*: ✅ Proper indexes created (state, deleted_at for all tables, foreign key indexes)
+*Result*: ✅ Recipe tables created with correct schema
 
 **Migration Status**:
 ```bash
@@ -82,57 +76,307 @@ sqlite3 src/meal_planner.db "SELECT * FROM alembic_version;"
 ```
 *Result*: ✅ Migration 0002 applied successfully
 
-**Integration Tests**:
-```bash
-uv run python -m pytest tests/integration/test_recipe_service.py -v
-```
-*Result*: ✅ All 7 tests pass (CRUD, scaling, duplication, search)
-
 **Full Test Suite**:
 ```bash
-uv run python -m pytest tests/ --tb=short
+uv run pytest tests/ --tb=short
 ```
-*Result*: ✅ All 52 tests pass in 0.43s
+*Result*: ✅ All 100 tests pass in ~0.7s
 
-#### Manual Validation Instructions
-
-**Recipe Creation Flow**:
-1. Start server: `uv run uvicorn meal_planner.main:app --reload`
-2. Navigate to `http://localhost:8000/recipes`
-3. Click "Add Recipe"
-4. Fill form (name, servings, ingredients with amounts/units)
-5. Save and verify recipe appears in list
-
-**Recipe Scaling Flow**:
-1. View recipe details
-2. Click "Scale Recipe"
-3. Enter new serving size
-4. Verify ingredients scaled proportionally (e.g., 2 cups flour for 4 servings becomes 4 cups for 8 servings)
-
-**Recipe Search Flow**:
-1. Create multiple recipes
-2. Use search box on list page
-3. Enter partial names
-4. Verify filtered results
-
-**API Testing**:
+**Coverage Report**:
 ```bash
-# List recipes
-curl http://localhost:8000/api/v1/recipes
+uv run pytest tests/ --cov=meal_planner --cov-report=term-missing
+```
+*Result*: ✅ 89% overall coverage
 
-# Create recipe
+---
+
+## API Testing Reference
+
+Start the dev server first:
+```bash
+uv run uvicorn meal_planner.main:app --reload
+```
+
+Base URL: `http://localhost:8000`
+
+### Recipe CRUD
+
+#### Create a Recipe (POST /api/v1/recipes)
+
+**Minimal (title only)**:
+```bash
 curl -X POST http://localhost:8000/api/v1/recipes \
   -H "Content-Type: application/json" \
-  -d '{"name":"Test Recipe","servings":2,"ingredients":[{"food_name":"Flour","amount":1.0,"unit":"cup"}]}'
-
-# Get recipe
-curl http://localhost:8000/api/v1/recipes/{uuid}
+  -d '{"title": "Quick Oatmeal"}'
+```
+Expected: `201 Created`
+```json
+{"id": "<uuid>", "title": "Quick Oatmeal", "state": "draft", "created_at": "..."}
 ```
 
-**Database Integrity Check**:
+**With ingredients**:
 ```bash
-sqlite3 src/meal_planner.db "SELECT COUNT(*) FROM recipe WHERE deleted_at IS NULL;"
-sqlite3 src/meal_planner.db "SELECT name, servings FROM recipe LIMIT 5;"
+curl -X POST http://localhost:8000/api/v1/recipes \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Pancakes",
+    "description": "Fluffy weekend pancakes",
+    "base_servings": 4,
+    "ingredients": [
+      {"name": "Flour", "amount": 2.0, "unit": "cups"},
+      {"name": "Eggs", "amount": 3, "unit": "pieces"},
+      {"name": "Milk", "amount": 1.5, "unit": "cups"},
+      {"name": "Salt", "to_taste": true}
+    ]
+  }'
+```
+Expected: `201 Created`
+```json
+{"id": "<uuid>", "title": "Pancakes", "state": "draft", "created_at": "..."}
+```
+
+**With all fields**:
+```bash
+curl -X POST http://localhost:8000/api/v1/recipes \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Chicken Stir Fry",
+    "description": "Quick weeknight dinner",
+    "state": "finalized",
+    "base_servings": 4,
+    "prep_time_minutes": 15,
+    "cook_time_minutes": 20,
+    "ingredients": [
+      {"name": "Chicken Breast", "amount": 500, "unit": "g", "notes": "boneless, skinless"},
+      {"name": "Soy Sauce", "amount": 3, "unit": "tbsp"},
+      {"name": "Garlic", "amount": 4, "unit": "cloves", "optional": true}
+    ]
+  }'
+```
+Expected: `201 Created`
+
+#### Get a Recipe (GET /api/v1/recipes/{id})
+
+```bash
+curl http://localhost:8000/api/v1/recipes/{recipe_id}
+```
+Expected: `200 OK`
+```json
+{
+  "id": "<uuid>",
+  "title": "Pancakes",
+  "description": "Fluffy weekend pancakes",
+  "state": "draft",
+  "base_servings": 4,
+  "prep_time_minutes": null,
+  "cook_time_minutes": null,
+  "ingredients": [
+    {"id": "<uuid>", "name": "Flour", "amount": "2.000", "unit": "cups", "to_taste": false, "optional": false, "notes": null, "sort_order": 0},
+    {"id": "<uuid>", "name": "Eggs", "amount": "3.000", "unit": "pieces", "to_taste": false, "optional": false, "notes": null, "sort_order": 1}
+  ],
+  "notes": [],
+  "created_at": "...",
+  "updated_at": "...",
+  "deleted_at": null
+}
+```
+
+**Not found**:
+```bash
+curl http://localhost:8000/api/v1/recipes/00000000-0000-0000-0000-000000000000
+```
+Expected: `404 Not Found`
+```json
+{"error": {"type": "http", "message": "Recipe not found"}}
+```
+
+#### List Recipes (GET /api/v1/recipes)
+
+**List all**:
+```bash
+curl http://localhost:8000/api/v1/recipes
+```
+Expected: `200 OK`
+```json
+{"items": [...], "total": 5, "has_more": false}
+```
+
+**Filter by state**:
+```bash
+curl "http://localhost:8000/api/v1/recipes?state=draft"
+```
+
+**Paginate**:
+```bash
+curl "http://localhost:8000/api/v1/recipes?limit=2&offset=0"
+```
+
+**Search by title/description**:
+```bash
+curl "http://localhost:8000/api/v1/recipes?q=pancake"
+```
+
+#### Update a Recipe (PUT /api/v1/recipes/{id})
+
+All fields are optional (partial update):
+```bash
+curl -X PUT http://localhost:8000/api/v1/recipes/{recipe_id} \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Buttermilk Pancakes", "base_servings": 6}'
+```
+Expected: `200 OK` — returns full updated recipe detail
+
+#### Delete a Recipe (DELETE /api/v1/recipes/{id})
+
+Soft delete (sets `deleted_at`, hides from queries):
+```bash
+curl -X DELETE http://localhost:8000/api/v1/recipes/{recipe_id}
+```
+Expected: `204 No Content` (empty body)
+
+After deletion, GET returns 404:
+```bash
+curl http://localhost:8000/api/v1/recipes/{recipe_id}
+# → 404 Not Found
+```
+
+---
+
+### Recipe Scaling
+
+#### Scale a Recipe (POST /api/v1/recipes/{id}/scale)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/recipes/{recipe_id}/scale \
+  -H "Content-Type: application/json" \
+  -d '{"new_servings": 8}'
+```
+Expected: `200 OK`
+```json
+{
+  "factor": 2.0,
+  "servings": 8,
+  "ingredients": [
+    {"id": "<uuid>", "name": "Flour", "amount": "4.000", "unit": "cups", "to_taste": false, "optional": false},
+    {"id": "<uuid>", "name": "Eggs", "amount": "6.000", "unit": "pieces", "to_taste": false, "optional": false}
+  ]
+}
+```
+
+**Validation error** (new_servings must be > 0):
+```bash
+curl -X POST http://localhost:8000/api/v1/recipes/{recipe_id}/scale \
+  -H "Content-Type: application/json" \
+  -d '{"new_servings": 0}'
+```
+Expected: `422 Unprocessable Entity`
+```json
+{"error": {"type": "validation", "message": "Request validation failed", "details": [...]}}
+```
+
+---
+
+### Recipe Duplication
+
+#### Duplicate a Recipe (POST /api/v1/recipes/{id}/duplicate)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/recipes/{recipe_id}/duplicate \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Whole Wheat Pancakes", "version_label": "healthier"}'
+```
+Expected: `201 Created`
+```json
+{
+  "id": "<new-uuid>",
+  "title": "Whole Wheat Pancakes",
+  "state": "draft",
+  "parent_recipe_id": "<original-uuid>",
+  "version_label": "healthier",
+  "created_at": "..."
+}
+```
+
+---
+
+### Ingredient Management
+
+#### Add an Ingredient (POST /api/v1/recipes/{id}/ingredients)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/recipes/{recipe_id}/ingredients \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Vanilla Extract", "amount": 1.0, "unit": "tsp"}'
+```
+Expected: `201 Created`
+```json
+{"id": "<uuid>", "name": "Vanilla Extract", "amount": "1.000", "unit": "tsp"}
+```
+
+#### Update an Ingredient (PUT /api/v1/recipes/ingredients/{ingredient_id})
+
+```bash
+curl -X PUT http://localhost:8000/api/v1/recipes/ingredients/{ingredient_id} \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Pure Vanilla Extract", "amount": 2.0, "unit": "tsp"}'
+```
+Expected: `200 OK`
+```json
+{"id": "<uuid>", "name": "Pure Vanilla Extract", "amount": "2.000", "unit": "tsp"}
+```
+
+#### Remove an Ingredient (DELETE /api/v1/recipes/ingredients/{ingredient_id})
+
+```bash
+curl -X DELETE http://localhost:8000/api/v1/recipes/ingredients/{ingredient_id}
+```
+Expected: `204 No Content`
+
+---
+
+### Note Management
+
+#### Add a Note (POST /api/v1/recipes/{id}/notes)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/recipes/{recipe_id}/notes \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Too salty last time - reduce salt by half"}'
+```
+Expected: `201 Created`
+```json
+{"id": "<uuid>", "text": "Too salty last time - reduce salt by half", "created_at": "..."}
+```
+
+#### Remove a Note (DELETE /api/v1/recipes/notes/{note_id})
+
+```bash
+curl -X DELETE http://localhost:8000/api/v1/recipes/notes/{note_id}
+```
+Expected: `204 No Content`
+
+---
+
+### Error Response Format
+
+All errors use a consistent envelope:
+
+**HTTP errors (404, etc.)**:
+```json
+{"error": {"type": "http", "message": "Recipe not found"}}
+```
+
+**Validation errors (422)**:
+```json
+{
+  "error": {
+    "type": "validation",
+    "message": "Request validation failed",
+    "details": [
+      {"type": "missing", "loc": ["body", "title"], "msg": "Field required", "input": {}}
+    ]
+  }
+}
 ```
 
 ---
@@ -143,20 +387,14 @@ sqlite3 src/meal_planner.db "SELECT name, servings FROM recipe LIMIT 5;"
 
 **Command**:
 ```bash
-./.venv/bin/python -m alembic -c alembic.ini upgrade head
+uv run alembic -c alembic.ini upgrade head
 ```
 
-**Result**: ✅ SUCCESS  
-**Output**:
-```
-2026-03-16 22:35:23,691 INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
-2026-03-16 22:35:23,691 INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
-2026-03-16 22:35:23,694 INFO  [alembic.runtime.migration] Running upgrade  -> 0001_initial, Initial revision
-```
+**Result**: ✅ SUCCESS
 
 **Verification**:
 - ✅ Migration file created: `src/meal_planner/repository/migrations/versions/0001_initial.py`
-- ✅ `alembic.ini` properly configured with section headers and logging
+- ✅ `alembic.ini` properly configured
 - ✅ `env.py` updated to use `Base.metadata` from models and sync driver for migrations
 - ✅ SQLite database created at `src/meal_planner.db`
 
@@ -168,7 +406,7 @@ sqlite3 src/meal_planner.db "SELECT name, servings FROM recipe LIMIT 5;"
 
 **Validation**:
 ```bash
-./.venv/bin/python -c "from meal_planner.api.schemas.common import BaseSchema, UUIDSchema, TimestampedSchema; print('Schemas OK')"
+uv run python -c "from meal_planner.api.schemas.common import BaseSchema, UUIDSchema, TimestampedSchema; print('Schemas OK')"
 ```
 
 **Result**: ✅ Schemas imported successfully
@@ -181,7 +419,7 @@ sqlite3 src/meal_planner.db "SELECT name, servings FROM recipe LIMIT 5;"
 
 **Validation**:
 ```bash
-./.venv/bin/python -c "from meal_planner.api.middleware import register_api_middleware, http_exception_handler; print('Middleware OK')"
+uv run python -c "from meal_planner.api.middleware import register_api_middleware, http_exception_handler; print('Middleware OK')"
 ```
 
 **Result**: ✅ Middleware handlers ready for FastAPI attachment
@@ -192,12 +430,7 @@ sqlite3 src/meal_planner.db "SELECT name, servings FROM recipe LIMIT 5;"
 
 **Paths Created**:
 - ✅ `src/meal_planner/web/templates/base.html`
-- ✅ `src/meal_planner/web/templates/recipes/README.md`
-
-**Validation**:
-```bash
-ls -la src/meal_planner/web/templates/
-```
+- ✅ `src/meal_planner/web/templates/recipes/`
 
 **Result**: ✅ Jinja2 template directories ready
 
@@ -209,11 +442,6 @@ ls -la src/meal_planner/web/templates/
 - ✅ `src/meal_planner/web/static/css/main.css`
 - ✅ `src/meal_planner/web/static/js/main.js`
 
-**Validation**:
-```bash
-ls -la src/meal_planner/web/static/
-```
-
 **Result**: ✅ Static file serving ready
 
 ---
@@ -222,11 +450,6 @@ ls -la src/meal_planner/web/static/
 
 **Module**: `src/meal_planner/repository/sqlalchemy/models/base.py`
 
-**Validation**:
-```bash
-./.venv/bin/python -c "from meal_planner.repository.sqlalchemy.models import Base; print(f'Base metadata tables: {Base.metadata.tables}')"
-```
-
 **Result**: ✅ Base class with UUID PKs and audit fields (created_at, updated_at, deleted_at)
 
 ---
@@ -234,11 +457,6 @@ ls -la src/meal_planner/web/static/
 ### ✅ Repository Protocols (T007)
 
 **Module**: `src/meal_planner/services/interfaces.py`
-
-**Validation**:
-```bash
-./.venv/bin/python -c "from meal_planner.services.interfaces import RepositoryProtocol, SearchRepositoryProtocol; print('Protocols OK')"
-```
 
 **Result**: ✅ Protocols defined and importable
 
@@ -250,90 +468,43 @@ ls -la src/meal_planner/web/static/
 
 **Test Command**:
 ```bash
-./.venv/bin/python -m pytest tests/unit/repository/test_session.py -v
+uv run pytest tests/unit/repository/test_session.py -v
 ```
 
 **Result**: ✅ 6/6 tests passing
-- ✅ Engine singleton verified
-- ✅ SessionMaker singleton verified
-- ✅ Async configuration correct (expire_on_commit=False, autoflush=False)
 
 ---
 
 ### ✅ Unit Conversion Utilities (T009)
 
-**Module**: `src/meal_planner/services/unit_conversion.py`
-
 **Test Command**:
 ```bash
-./.venv/bin/python -m pytest tests/unit/services/test_unit_conversion.py -v
+uv run pytest tests/unit/services/test_unit_conversion.py -v
 ```
 
 **Result**: ✅ 14/14 tests passing
-- ✅ Gram/ounce bidirectional conversions
-- ✅ ML/cup/teaspoon/tablespoon conversions
-- ✅ Edge cases (zero, large values)
-- ✅ Roundtrip precision maintained
 
 ---
 
 ### ✅ Fuzzy Search (T010)
 
-**Module**: `src/meal_planner/infra/search/fuzzy.py`
-
 **Test Command**:
 ```bash
-./.venv/bin/python -m pytest tests/unit/services/test_fuzzy_search.py -v
+uv run pytest tests/unit/services/test_fuzzy_search.py -v
 ```
 
 **Result**: ✅ 10/10 tests passing
-- ✅ Exact match scoring (100.0)
-- ✅ Partial match detection
-- ✅ Typo tolerance
-- ✅ Multi-word ingredient matching
-- ✅ Score ordering (descending)
 
 ---
 
 ### ✅ Nutrition Calculator (T011)
 
-**Module**: `src/meal_planner/services/nutrition_calculator.py`
-
 **Test Command**:
 ```bash
-./.venv/bin/python -m pytest tests/unit/services/test_nutrition_calculator.py -v
+uv run pytest tests/unit/services/test_nutrition_calculator.py -v
 ```
 
 **Result**: ✅ 15/15 tests passing
-- ✅ Nutrition aggregation (single, multiple, empty)
-- ✅ Confidence levels (HIGH→USDA, MEDIUM→3rd-party, LOW→user)
-- ✅ Meal characterization (protein, calories, sugar labels)
-- ✅ Precision on floating-point values
-
----
-
-## Compilation & Import Validation
-
-### Check All Python Files for Syntax
-
-```bash
-find src/meal_planner -name "*.py" -exec python -m py_compile {} +
-```
-
-**Result**: ✅ All files compile without syntax errors
-
----
-
-### Verify Main Application Loads
-
-```bash
-./.venv/bin/python -c "from meal_planner.main import app; print(f'App title: {app.title}')"
-```
-
-**Result**: ✅ FastAPI app initializes successfully
-```
-App title: Meal Planner
-```
 
 ---
 
@@ -345,100 +516,30 @@ python --version
 # Python 3.12.7
 ```
 
-### Key Dependencies Installed
-```bash
-./.venv/bin/pip list | grep -E "(fastapi|sqlalchemy|alembic|pydantic|pytest|rapidfuzz)"
-```
-
-**Result**: ✅ All required packages present
+### Key Dependencies
 - fastapi>=0.115
 - sqlalchemy>=2.0
 - alembic>=1.13
 - pydantic>=2.7
 - pytest>=8.2
+- pytest-asyncio>=0.23
+- httpx>=0.27
 - rapidfuzz>=3.9
 
 ---
 
 ## Database State
 
-### Check SQLite Database Created
+### Check SQLite Database
 ```bash
 ls -lah src/meal_planner.db
 ```
 
-**Result**: ✅ Database file exists and migration has been applied
-
----
-
-## Test Coverage Summary
-
+### Database Integrity
 ```bash
-./.venv/bin/python -m pytest tests/unit/ -v --tb=no | grep -E "(passed|failed|error)"
+sqlite3 src/meal_planner.db "SELECT COUNT(*) FROM recipe WHERE deleted_at IS NULL;"
+sqlite3 src/meal_planner.db "SELECT title, base_servings FROM recipe LIMIT 5;"
 ```
-
-**Result**: ✅ Phase 1–2 testing complete
-```
-45 passed in 0.34s
-```
-
----
-
-## Ready for Phase 3
-
-**Status**: ✅ READY  
-
-All Phase 1–2 foundations validated:
-- ✅ Alembic migrations working
-- ✅ Base models defined
-- ✅ Service layer infrastructure complete
-- ✅ Async session management tested
-- ✅ Critical business logic (nutrition, search, conversions) tested
-
-**Next Command** (when starting Phase 3 recipes):
-```bash
-./.venv/bin/python -m pytest tests/unit/ -v && echo "✅ Ready for Phase 3"
-```
-
----
-
-## Troubleshooting
-
-### Migration Issues
-
-**Problem**: `migrationError: Can't locate revision identified by ''`
-
-**Solution**: Check `alembic.ini` has proper `[alembic]` section with `script_location`.
-
-**Validate**:
-```bash
-head -20 alembic.ini
-```
-
-### Session Errors
-
-**Problem**: `greenlet not installed`
-
-**Solution**: The migration uses sync driver (`sqlite+pysqlite`), not async (`sqlite+aiosqlite`).
-
-**Verify**:
-```bash
-./.venv/bin/python -c "from meal_planner.repository.sqlalchemy.session import get_engine; print(get_engine().url)"
-# Should show: sqlite+aiosqlite:///./src/meal_planner.db
-```
-
-### Test Failures
-
-**Problem**: Tests fail with import errors
-
-**Solution**: Ensure pytest can find `meal_planner` package.
-
-**Validate**:
-```bash
-./.venv/bin/python -m pytest --co -q tests/unit/ | head -5
-```
-
-Should list all discovered tests.
 
 ---
 
@@ -453,16 +554,44 @@ find . -type d -name .pytest_cache -exec rm -rf {} +
 ### Reset Database (lose all data)
 ```bash
 rm src/meal_planner.db
-./.venv/bin/python -m alembic -c alembic.ini upgrade head
+uv run alembic -c alembic.ini upgrade head
 ```
 
 ### Format Code
 ```bash
-./.venv/bin/ruff format src/ tests/
-./.venv/bin/ruff check src/ tests/ --fix
+uv run ruff format src/ tests/
+uv run ruff check src/ tests/ --fix
 ```
 
 ### Type Check
 ```bash
-./.venv/bin/mypy src/meal_planner --ignore-missing-imports
+uv run mypy src/meal_planner --ignore-missing-imports
 ```
+
+---
+
+## Troubleshooting
+
+### Migration Issues
+
+**Problem**: `migrationError: Can't locate revision identified by ''`
+
+**Solution**: Check `alembic.ini` has proper `[alembic]` section with `script_location`.
+
+### Session Errors
+
+**Problem**: `greenlet not installed`
+
+**Solution**: The migration uses sync driver (`sqlite+pysqlite`), not async (`sqlite+aiosqlite`).
+
+### Test Failures
+
+**Problem**: Tests fail with import errors
+
+**Solution**: Ensure pytest can find `meal_planner` package.
+
+```bash
+uv run pytest --co -q tests/ | head -5
+```
+
+Should list all discovered tests.

@@ -11,30 +11,45 @@ A local-first recipe home and nutrition-aware meal planning companion.
 # Install dependencies
 uv sync
 
+# Apply database migrations
+uv run alembic -c alembic.ini upgrade head
+
 # Run tests
-uv run python -m pytest tests/ -v
+uv run pytest tests/ -v
 
 # Start development server
 uv run uvicorn meal_planner.main:app --reload
 ```
 
-### Manual Validation (Phase 3 Complete)
+### API Docs
 
-After starting the server, test core functionality:
+After starting the server:
+- Swagger UI: http://localhost:8000/api/docs
+- ReDoc: http://localhost:8000/api/redoc
 
-1. **Recipe Creation**: Visit `http://localhost:8000/recipes` → "Add Recipe" → Fill form → Save
-2. **Recipe Scaling**: View recipe → "Scale Recipe" → Change servings → Verify ingredient amounts scale
-3. **Recipe Search**: Create multiple recipes → Use search box → Verify filtering works
-4. **API Testing**: Use curl or browser dev tools to test `/api/v1/recipes` endpoints
+### Quick API Test
 
-See [VALIDATION.md](VALIDATION.md) for detailed commands and automated checks.
+```bash
+# Create a recipe
+curl -X POST http://localhost:8000/api/v1/recipes \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Test Recipe", "base_servings": 2, "ingredients": [{"name": "Flour", "amount": 1.0, "unit": "cup"}]}'
+
+# Get recipe (use the id from the response above)
+curl http://localhost:8000/api/v1/recipes/{id}
+
+# List all recipes
+curl http://localhost:8000/api/v1/recipes
+```
+
+See [VALIDATION.md](VALIDATION.md) for the full API testing reference with curl examples for all endpoints.
 
 ---
 
 ## Project Status
 
-- ✅ **Phase 1–3**: Recipe management with full CRUD, scaling, and search
-- ⏭️ **Phase 4**: Nutrition integration and meal planning
-- 📋 **Testing**: 52 automated tests covering critical paths (45 unit + 7 integration)
+- ✅ **Phase 1–3**: Recipe management with full CRUD, scaling, duplication, search, and notes
+- ⏭️ **Phase 4**: Nutrition data integration (User Story 2)
+- 📋 **Testing**: 100 automated tests (89% coverage) — 63 unit + 7 integration + 30 API endpoint tests
 
 See [specs/](specs/) for detailed requirements and [tests/TEST_REPORT.md](tests/TEST_REPORT.md) for test coverage.

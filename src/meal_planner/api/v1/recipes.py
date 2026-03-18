@@ -252,7 +252,9 @@ async def scale_recipe(
         raise HTTPException(status_code=404, detail="Recipe not found")
 
     relations = await service.get_recipe_with_relations(recipe_id)
-    scale_result = service.scale_recipe(recipe, data.new_servings)
+    scale_result = service.scale_recipe(
+        recipe, data.new_servings, ingredients=relations["ingredients"]
+    )
 
     return RecipeScaleResponseSchema(
         factor=scale_result["factor"],

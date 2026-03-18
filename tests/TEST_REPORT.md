@@ -1,14 +1,14 @@
 # Test Report: Meal Planner MVP
 
-**Status**: ✅ PASSING  
-**Last Updated**: 2026-03-17  
-**Test Framework**: pytest 9.0.2, asyncio (auto mode)  
+**Status**: ✅ PASSING
+**Last Updated**: 2026-03-18
+**Test Framework**: pytest 9.0.2, asyncio (auto mode)
 
 ---
 
 ## Summary
 
-All Phase 1–3 tests passing. **52 tests** across 5 critical modules validate core infrastructure and recipe functionality.
+All Phase 1–3 tests passing. **100 tests** across 9 test modules validate core infrastructure, recipe functionality, API endpoints, error handling, and schema validation.
 
 | Phase | Module | Tests | Status | Coverage |
 |-------|--------|-------|--------|----------|
@@ -16,7 +16,11 @@ All Phase 1–3 tests passing. **52 tests** across 5 critical modules validate c
 | 2     | `services/nutrition_calculator.py` | 15 | ✅ PASS | Aggregation, confidence, characterization |
 | 2     | `infra/search/fuzzy.py` | 10 | ✅ PASS | Exact/partial matching, scoring, limits |
 | 2     | `repository/sqlalchemy/session.py` | 6 | ✅ PASS | Engine/sessionmaker singletons, config |
-| 3     | `services/recipe_service.py` | 7 | ✅ PASS | CRUD, scaling, duplication, search |
+| 3     | `services/recipe_service.py` (integration) | 7 | ✅ PASS | CRUD, scaling, duplication, search |
+| 3     | `api/v1/recipes.py` (HTTP endpoints) | 25 | ✅ PASS | Full-stack API tests via httpx |
+| 3     | `api/middleware.py` (error handling) | 5 | ✅ PASS | Error envelopes, validation rejection |
+| 3     | `services/recipe_service.py` (unit) | 12 | ✅ PASS | Service branch coverage with mocks |
+| 3     | `api/schemas/recipe.py` | 6 | ✅ PASS | Pydantic validation rules |
 
 ---
 
@@ -109,7 +113,6 @@ All Phase 1–3 tests passing. **52 tests** across 5 critical modules validate c
 - RapidFuzz `WRatio` scorer integrated correctly
 - Typo tolerance works (>50% threshold by default)
 - Results sorted by score descending
-- Used for ingredient library searches in Phase 3+
 
 ---
 
@@ -135,7 +138,7 @@ All Phase 1–3 tests passing. **52 tests** across 5 critical modules validate c
 
 ---
 
-### T024: Recipe Service Integration (7 tests)
+### Recipe Service Integration (7 tests)
 
 **File**: `tests/integration/test_recipe_service.py`
 
@@ -156,100 +159,249 @@ All Phase 1–3 tests passing. **52 tests** across 5 critical modules validate c
 - Duplication creates independent copies
 - Search works across recipe names
 - Soft deletes hide recipes from queries
-- All operations use Pydantic schemas for data validation
+
+---
+
+### HTTP API Endpoint Tests (25 tests)
+
+**File**: `tests/api/test_recipe_endpoints.py`
+
+**Purpose**: Full-stack HTTP integration tests using httpx AsyncClient. These tests exercise the complete request lifecycle: HTTP request → FastAPI routing → dependency injection → service → repository → database → response serialization. This suite would have caught the session ROLLBACK bug discovered during manual validation.
+
+**Test Groups**:
+
+#### Recipe CRUD (10 tests)
+- ✅ `test_create_recipe_returns_201` — POST returns 201 with id/title/state/created_at
+- ✅ `test_create_then_get_persists` — POST then GET verifies cross-request persistence
+- ✅ `test_create_with_ingredients_then_get_has_ingredients` — Ingredients appear on detail view
+- ✅ `test_create_minimal_recipe` — Only title required; defaults applied
+- ✅ `test_get_nonexistent_returns_404` — Random UUID returns 404
+- ✅ `test_update_recipe` — PUT updates fields correctly
+- ✅ `test_update_nonexistent_returns_404` — PUT on missing recipe returns 404
+- ✅ `test_delete_returns_204` — DELETE returns 204 with empty body
+- ✅ `test_delete_then_get_returns_404` — Soft-deleted recipe hidden from GET
+- ✅ `test_delete_nonexistent_returns_404` — DELETE on missing recipe returns 404
+
+#### List & Search (5 tests)
+- ✅ `test_list_empty` — Empty DB returns `{items: [], total: 0, has_more: false}`
+- ✅ `test_list_returns_created` — Created recipes appear in list
+- ✅ `test_list_state_filter` — `?state=finalized` filters correctly
+- ✅ `test_list_pagination` — `?limit=2&offset=0` paginates with `has_more`
+- ✅ `test_search_recipes` — `?q=Chocolate` matches title search
+
+#### Scale & Duplicate (4 tests)
+- ✅ `test_scale_recipe` — Doubled servings double ingredient amounts
+- ✅ `test_scale_nonexistent_returns_404` — Scale missing recipe returns 404
+- ✅ `test_duplicate_recipe` — Returns 201 with new ID and parent link
+- ✅ `test_duplicate_nonexistent_returns_404` — Duplicate missing recipe returns 404
+
+#### Ingredient Sub-resource (4 tests)
+- ✅ `test_add_ingredient` — POST ingredient returns 201
+- ✅ `test_add_ingredient_missing_recipe_returns_404` — Missing recipe returns 404
+- ✅ `test_update_ingredient` — PUT updates ingredient fields
+- ✅ `test_remove_ingredient` — DELETE ingredient returns 204
+
+#### Note Sub-resource (2 tests)
+- ✅ `test_add_note` — POST note returns 201 with text and created_at
+- ✅ `test_remove_note` — DELETE note returns 204
+
+**Key Validations**:
+- Cross-request data persistence (the commit bug catcher)
+- All 12 API endpoints exercised with success and error paths
+- Response status codes match API contract (201, 204, 404)
+- Soft delete hides recipes from subsequent GETs
+- Pagination and search work correctly at the HTTP level
+
+---
+
+### Error Handling & Middleware (5 tests)
+
+**File**: `tests/api/test_error_handling.py`
+
+**Purpose**: Validate the standardized error response envelope format produced by middleware exception handlers.
+
+**Tests**:
+- ✅ `test_http_error_envelope` — 404 returns `{"error": {"type": "http", "message": "..."}}`
+- ✅ `test_validation_error_envelope_missing_field` — Missing required field returns 422 with details
+- ✅ `test_validation_error_wrong_types` — Wrong field types return 422
+- ✅ `test_scale_rejects_zero_servings` — `new_servings: 0` rejected (gt=0 constraint)
+- ✅ `test_scale_rejects_negative_servings` — `new_servings: -1` rejected
+
+**Key Validations**:
+- HTTP errors wrapped in `{"error": {"type": "http", "message": "..."}}` envelope
+- Validation errors wrapped in `{"error": {"type": "validation", "message": "...", "details": [...]}}` envelope
+- Pydantic field constraints (`gt=0`) enforced at the API level
+
+---
+
+### Recipe Service Unit Tests (12 tests)
+
+**File**: `tests/unit/services/test_recipe_service_unit.py`
+
+**Purpose**: Mock-based unit tests for RecipeService methods not covered by integration tests. Fills branch coverage gaps.
+
+**Tests**:
+- ✅ `test_update_ingredient_applies_fields` — All field updates applied correctly
+- ✅ `test_update_ingredient_not_found` — Returns None
+- ✅ `test_remove_ingredient_not_found` — Returns False
+- ✅ `test_remove_ingredient_success` — Returns True, calls repo
+- ✅ `test_add_note_recipe_not_found` — Returns None
+- ✅ `test_add_note_success` — Creates note with correct text and UUID
+- ✅ `test_remove_note_not_found` — Returns False
+- ✅ `test_remove_note_success` — Returns True, calls repo
+- ✅ `test_get_recipe_with_relations_not_found` — Returns None
+- ✅ `test_scale_base_servings_zero` — Returns `{factor: 1.0, ingredients: []}`
+- ✅ `test_scale_ingredient_amount_none` — To-taste ingredient stays None
+- ✅ `test_duplicate_not_found` — Returns None
+
+**Key Validations**:
+- All "not found" branches return correct sentinel values (None/False)
+- Ingredient update applies all optional fields correctly
+- Scale edge cases: zero servings, None amounts handled safely
+
+---
+
+### Schema Validation Tests (6 tests)
+
+**File**: `tests/unit/schemas/test_recipe_schemas.py`
+
+**Purpose**: Validate Pydantic schema constraints directly.
+
+**Tests**:
+- ✅ `test_create_defaults` — `RecipeCreateSchema(title="X")` defaults: state=draft, base_servings=1
+- ✅ `test_create_requires_title` — Missing title raises ValidationError
+- ✅ `test_scale_rejects_zero` — `new_servings=0` raises ValidationError
+- ✅ `test_scale_rejects_negative` — `new_servings=-1` raises ValidationError
+- ✅ `test_update_all_optional` — All fields optional for partial updates
+- ✅ `test_ingredient_create_defaults` — Boolean defaults: to_taste=False, optional=False
+
+---
 
 ## Running Tests
 
 ### All Tests
 ```bash
-./.venv/bin/python -m pytest tests/ -v
+uv run pytest tests/ -v
+```
+
+### By Layer
+```bash
+# API endpoint tests (HTTP-level)
+uv run pytest tests/api/ -v
+
+# Unit tests
+uv run pytest tests/unit/ -v
+
+# Integration tests (service-layer)
+uv run pytest tests/integration/ -v
 ```
 
 ### By Module
 ```bash
 # Unit conversions
-./.venv/bin/python -m pytest tests/unit/services/test_unit_conversion.py -v
+uv run pytest tests/unit/services/test_unit_conversion.py -v
 
 # Nutrition calculator
-./.venv/bin/python -m pytest tests/unit/services/test_nutrition_calculator.py -v
+uv run pytest tests/unit/services/test_nutrition_calculator.py -v
 
 # Fuzzy search
-./.venv/bin/python -m pytest tests/unit/services/test_fuzzy_search.py -v
+uv run pytest tests/unit/services/test_fuzzy_search.py -v
 
 # Session/DB
-./.venv/bin/python -m pytest tests/unit/repository/test_session.py -v
+uv run pytest tests/unit/repository/test_session.py -v
+
+# Recipe service (mock-based unit)
+uv run pytest tests/unit/services/test_recipe_service_unit.py -v
+
+# Schema validation
+uv run pytest tests/unit/schemas/test_recipe_schemas.py -v
 
 # Recipe service integration
-./.venv/bin/python -m pytest tests/integration/test_recipe_service.py -v
+uv run pytest tests/integration/test_recipe_service.py -v
+
+# API endpoints
+uv run pytest tests/api/test_recipe_endpoints.py -v
+
+# Error handling
+uv run pytest tests/api/test_error_handling.py -v
 ```
 
 ### Coverage Report
 ```bash
-./.venv/bin/python -m pytest tests/ --cov=meal_planner --cov-report=html
+uv run pytest tests/ --cov=meal_planner --cov-report=term-missing
 ```
 
 ---
 
-## Test Quality Notes
+## Bugs Found by Test Suite
 
-### What's Tested
-- ✅ Pure math logic (unit conversions): 100% coverage
-- ✅ Business calculations (nutrition): 100% coverage
-- ✅ Search integration (RapidFuzz): Full feature coverage
-- ✅ Infrastructure (async sessions): Configuration + singleton behavior
-- ✅ Recipe CRUD operations: Full integration coverage with database
-- ✅ Edge cases: Zero values, empty lists, large values
+### 1. Session ROLLBACK Bug (Fixed)
+**Found by**: Manual validation (POST then GET returned 404)
+**Root cause**: `get_session()` in `session.py` never called `commit()`. Data was flushed but rolled back when the session closed.
+**Fix**: Added `await session.commit()` on success, `await session.rollback()` on exception in `get_session()`.
+**Preventing test**: `test_create_then_get_persists` in `test_recipe_endpoints.py`.
 
-### What's Not Tested (Intentionally)
-- Database I/O operations — Async SQLite operations tested via integration tests in Phase 3
-- API endpoint paths — Tested via FastAPI TestClient in Phase 3+
-- Template rendering — Tested via Jinja2 in web layer tests, Phase 3+
-
-### Design Decisions
-- **No ORM model tests**: Base model is declarative (no logic)
-- **No middleware tests**: Error handlers tested via API integration tests (Phase 3)
-- **Session tests focus on configuration**: Actual async I/O tested in integration tests
-- **Integration tests for high-ROI features**: Recipe service tested end-to-end to validate Phase 3 stability
+### 2. Scale Endpoint Lazy-Load Bug (Fixed)
+**Found by**: `test_scale_recipe` in `test_recipe_endpoints.py`
+**Root cause**: The scale endpoint fetched `relations` (with pre-loaded ingredients) but passed the ORM `recipe` object to `scale_recipe()`, which accessed `recipe.ingredients` (a lazy-loaded relationship). This triggered sync I/O in an async context.
+**Fix**: `scale_recipe()` now accepts an explicit `ingredients` parameter; endpoint passes `relations["ingredients"]`.
 
 ---
 
-## Next Steps
+## Coverage Summary (2026-03-18)
 
-- ✅ Phase 1–3 foundations validated
-- ⏭️ Phase 4: User Story 2 (nutrition integration)
-- ⏭️ Add API endpoint integration tests (Phase 3+)
-- ⏭️ Add database migration tests (post-model authoring)
+| Module | Coverage |
+|--------|----------|
+| `api/middleware.py` | 100% |
+| `api/schemas/recipe.py` | 100% |
+| `api/schemas/common.py` | 100% |
+| `config.py` | 100% |
+| `main.py` | 100% |
+| `infra/search/fuzzy.py` | 100% |
+| `services/unit_conversion.py` | 100% |
+| `services/nutrition_calculator.py` | 98% |
+| `services/recipe_service.py` | 94% |
+| `repository/sqlalchemy/models/recipe.py` | 94% |
+| `repository/sqlalchemy/repositories/recipe_repository.py` | 92% |
+| **Overall** | **89%** |
 
 ---
 
-## Test Metrics (2026-03-17)
+## Test Metrics (2026-03-18)
 
 | Metric | Value |
 |--------|-------|
-| **Total Tests** | 52 |
-| **Passing** | 52 (100%) |
+| **Total Tests** | 100 |
+| **Passing** | 100 (100%) |
 | **Failing** | 0 |
 | **Skipped** | 0 |
 | **Errors** | 0 |
-| **Execution Time** | 0.45s |
-| **Modules Covered** | 5 (critical path + recipe service) |
+| **Execution Time** | ~0.7s |
+| **Modules Covered** | 9 test files across 3 layers |
 
 ---
 
-## Appendix: Test Organization
+## Test Organization
 
 ```
 tests/
+├── api/
+│   ├── conftest.py                        # In-memory DB fixtures, httpx client
+│   ├── test_recipe_endpoints.py           # 25 HTTP-level API tests
+│   └── test_error_handling.py             # 5 middleware/validation tests
 ├── unit/
 │   ├── services/
-│   │   ├── test_unit_conversion.py    # T009 (14 tests)
-│   │   ├── test_nutrition_calculator.py  # T011 (15 tests)
-│   │   └── test_fuzzy_search.py       # T010 (10 tests)
+│   │   ├── test_unit_conversion.py        # T009 (14 tests)
+│   │   ├── test_nutrition_calculator.py   # T011 (15 tests)
+│   │   ├── test_fuzzy_search.py           # T010 (10 tests)
+│   │   └── test_recipe_service_unit.py    # 12 mock-based service tests
+│   ├── schemas/
+│   │   └── test_recipe_schemas.py         # 6 Pydantic validation tests
 │   └── repository/
-│       └── test_session.py            # T008 (6 tests)
+│       └── test_session.py                # T008 (6 tests)
 ├── integration/
-│   └── test_recipe_service.py         # T024 (7 tests)
-└── __init__.py
+│   └── test_recipe_service.py             # 7 service-layer integration tests
+└── TEST_REPORT.md
 ```
 
 **Convention**: Test file names follow `test_<module>.py`, matching source module names in `src/meal_planner/`.

@@ -43,6 +43,13 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 
         async def endpoint(session: AsyncSession = Depends(get_session)):
             ...
+
+    Commits on success, rolls back on exception.
     """
     async with get_sessionmaker()() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
