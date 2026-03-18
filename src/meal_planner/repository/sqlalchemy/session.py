@@ -45,4 +45,9 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
             ...
     """
     async with get_sessionmaker()() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise

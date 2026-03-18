@@ -121,18 +121,20 @@ uv run python -m pytest tests/ --tb=short
 curl http://localhost:8000/api/v1/recipes
 
 # Create recipe
-curl -X POST http://localhost:8000/api/v1/recipes \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Test Recipe","servings":2,"ingredients":[{"food_name":"Flour","amount":1.0,"unit":"cup"}]}'
+curl -X POST \
+  'http://localhost:8000/api/v1/recipes' \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"Test Recipe","base_servings":2,"ingredients":[{"name":"Flour","amount":1.0,"unit":"cup"}]}'
 
 # Get recipe
+# curl -X GET 'http://localhost:8000/api/v1/recipes/3d40f435-334e-41ab-bb55-f26bb4972d46' -H 'Content-Type: application/json'
 curl http://localhost:8000/api/v1/recipes/{uuid}
 ```
 
 **Database Integrity Check**:
 ```bash
 sqlite3 src/meal_planner.db "SELECT COUNT(*) FROM recipe WHERE deleted_at IS NULL;"
-sqlite3 src/meal_planner.db "SELECT name, servings FROM recipe LIMIT 5;"
+sqlite3 src/meal_planner.db "SELECT title, base_servings FROM recipe LIMIT 5;"
 ```
 
 ---
