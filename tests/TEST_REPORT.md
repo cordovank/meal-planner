@@ -8,7 +8,7 @@
 
 ## Summary
 
-All Phase 1–5 tests passing. **192 tests** across 17 test modules validate core infrastructure, recipe functionality, food library, nutrition calculations, profile management, API endpoints, error handling, and schema validation.
+All Phase 1–6 tests passing. **263 tests** across 20 test modules validate core infrastructure, recipe functionality, food library, nutrition calculations, profile management, meal planning, batch tracking, API endpoints, error handling, and schema validation.
 
 | Phase | Module | Tests | Status | Coverage |
 |-------|--------|-------|--------|----------|
@@ -28,6 +28,10 @@ All Phase 1–5 tests passing. **192 tests** across 17 test modules validate cor
 | 5     | `services/profile_service.py` (unit) | 14 | ✅ PASS | Service branch coverage, comparison logic |
 | 5     | `services/profile_service.py` (integration) | 7 | ✅ PASS | Profile CRUD, targets, defaults, comparison |
 | 5     | `api/schemas/profile.py` | 11 | ✅ PASS | Profile/target schema validation |
+| 6     | `api/v1/planning.py` (HTTP endpoints) | 22 | ✅ PASS | Plan CRUD, batch management, rescheduling |
+| 6     | `services/planning_service.py` (unit) | 22 | ✅ PASS | Service branch coverage with mocks |
+| 6     | `services/planning_service.py` (integration) | 11 | ✅ PASS | Planning service with real DB |
+| 6     | `api/schemas/planning.py` | 16 | ✅ PASS | Planning/batch schema validation |
 
 ---
 
@@ -385,6 +389,123 @@ All Phase 1–5 tests passing. **192 tests** across 17 test modules validate cor
 
 ---
 
+### Planning Service Unit Tests (22 tests)
+
+**File**: `tests/unit/services/test_planning_service_unit.py`
+
+**Purpose**: Mock-based unit tests for PlanningService methods including meal CRUD, batch tracking, rescheduling, and weekly plan generation.
+
+**Tests**:
+- ✅ `test_add_meal_creates_entry` — Creates plan entry when recipe exists
+- ✅ `test_add_meal_returns_none_for_missing_recipe` — Returns None for missing recipe
+- ✅ `test_remove_meal_success` — Returns True and soft-deletes
+- ✅ `test_remove_meal_not_found` — Returns False
+- ✅ `test_reschedule_meal_updates_date_and_slot` — Changes date and slot
+- ✅ `test_reschedule_meal_not_found` — Returns None
+- ✅ `test_reschedule_keeps_slot_when_not_provided` — Preserves original slot
+- ✅ `test_create_batch_success` — Creates batch with correct initial/remaining
+- ✅ `test_create_batch_missing_recipe` — Returns None
+- ✅ `test_create_batch_invalid_servings` — Returns None for 0 servings
+- ✅ `test_consume_batch_decrements` — Decrements remaining servings
+- ✅ `test_consume_batch_not_found` — Returns None
+- ✅ `test_consume_batch_insufficient_servings` — Returns None when over-consuming
+- ✅ `test_consume_batch_invalid_servings` — Returns None for 0 servings
+- ✅ `test_consume_batch_soft_deletes_when_empty` — Soft-deletes at 0 remaining
+- ✅ `test_add_meal_from_batch` — Creates entry and decrements batch
+- ✅ `test_add_meal_from_batch_insufficient` — Returns None for over-consume
+- ✅ `test_add_meal_from_batch_not_found` — Returns None for missing batch
+- ✅ `test_get_week_plan_returns_7_days` — Week plan has 7 days
+- ✅ `test_get_week_plan_includes_meals` — Meals appear in correct day
+- ✅ `test_get_suggestions_returns_recent_and_leftovers` — Both suggestion types
+
+---
+
+### Planning Schema Validation (16 tests)
+
+**File**: `tests/unit/schemas/test_planning_schemas.py`
+
+**Purpose**: Validate Pydantic schema constraints for planning API.
+
+**Tests**:
+- ✅ `test_valid_meal_plan_entry` — Valid create schema
+- ✅ `test_meal_plan_entry_default_servings` — Default servings = 1.0
+- ✅ `test_meal_plan_entry_invalid_slot` — "brunch" rejected
+- ✅ `test_meal_plan_entry_zero_servings` — Zero servings rejected
+- ✅ `test_meal_plan_entry_negative_servings` — Negative rejected
+- ✅ `test_valid_reschedule` — Valid reschedule schema
+- ✅ `test_reschedule_with_new_slot` — Slot change accepted
+- ✅ `test_reschedule_invalid_slot` — Invalid slot rejected
+- ✅ `test_valid_batch_create` — Valid batch create
+- ✅ `test_batch_create_with_date` — Date accepted
+- ✅ `test_batch_create_zero_servings` — Zero rejected
+- ✅ `test_batch_create_negative_servings` — Negative rejected
+- ✅ `test_valid_batch_consume` / `test_batch_consume_default` / `test_batch_consume_zero` — Consume validation
+- ✅ `test_valid_meal_from_batch` / `test_meal_from_batch_invalid_slot` — Batch-meal validation
+
+---
+
+### Planning API Endpoints (22 tests)
+
+**File**: `tests/api/test_planning_endpoints.py`
+
+**Purpose**: Full-stack HTTP integration tests for planning API.
+
+**Test Groups**:
+
+#### Weekly Plan (2 tests)
+- ✅ `test_get_empty_week_plan` — Returns 7 empty days
+- ✅ `test_get_week_plan_invalid_date` — Bad date returns 400
+
+#### Meal Plan CRUD (5 tests)
+- ✅ `test_add_meal_to_plan` — POST returns 201 with entry
+- ✅ `test_add_meal_invalid_slot` — Invalid slot returns 422
+- ✅ `test_add_meal_nonexistent_recipe` — Missing recipe returns 404
+- ✅ `test_remove_meal_from_plan` — DELETE returns 204
+- ✅ `test_remove_nonexistent_meal` — Missing entry returns 404
+
+#### Rescheduling (2 tests)
+- ✅ `test_reschedule_meal` — Changes date and slot
+- ✅ `test_reschedule_nonexistent_meal` — Missing entry returns 404
+
+#### Batch Management (5 tests)
+- ✅ `test_create_batch` — POST returns 201 with batch info
+- ✅ `test_create_batch_nonexistent_recipe` — Missing recipe returns 404
+- ✅ `test_consume_batch` — POST decrements servings
+- ✅ `test_consume_batch_insufficient` — Over-consume returns 404
+- ✅ `test_consume_nonexistent_batch` — Missing batch returns 404
+
+#### Batch from Meal / Active Batches (4 tests)
+- ✅ `test_list_active_batches` — Lists created batches
+- ✅ `test_create_batch_from_meal_entry` — Links batch to meal
+- ✅ `test_create_batch_from_nonexistent_entry` — Missing entry returns 404
+- ✅ `test_add_meal_from_batch` / `test_add_meal_from_nonexistent_batch` — Batch-linked meals
+
+#### Suggestions & Integration (3 tests)
+- ✅ `test_get_suggestions` — Returns recent and leftovers
+- ✅ `test_week_plan_includes_added_meal` — Added meal appears in week plan
+
+---
+
+### Planning Service Integration (11 tests)
+
+**File**: `tests/integration/test_planning_service.py`
+
+**Purpose**: End-to-end planning service tests with real database.
+
+**Tests**:
+- ✅ `test_add_and_retrieve_meal` — Create and list meal entries
+- ✅ `test_remove_meal_hides_from_plan` — Soft delete hides from day plan
+- ✅ `test_reschedule_meal_changes_date` — Move meal between days
+- ✅ `test_create_and_consume_batch` — Batch CRUD lifecycle
+- ✅ `test_batch_soft_deleted_when_empty` — Empty batch hidden
+- ✅ `test_list_active_batches_excludes_empty` — Filtered listing
+- ✅ `test_add_meal_from_batch_decrements` — Batch-linked meal flow
+- ✅ `test_week_plan_structure` — 7 days with correct dates
+- ✅ `test_week_plan_shows_added_meals` — Meals in weekly view
+- ✅ `test_suggestions_include_recipes` — Recent recipes in suggestions
+
+---
+
 ## Running Tests
 
 ### All Tests
@@ -497,10 +618,15 @@ uv run pytest tests/ --cov=meal_planner --cov-report=term-missing
 | `models/recipe.py` | 94% |
 | `repositories/profile_repository.py` | 95% |
 | `repositories/recipe_repository.py` | 92% |
+| `api/v1/planning.py` | 58% |
 | `api/v1/profiles.py` | 73% |
 | `api/v1/food.py` | 66% |
+| `services/planning_service.py` | 93% |
 | `services/food_service.py` | 64% |
+| `repositories/planning_repository.py` | 95% |
 | `repositories/food_repository.py` | 66% |
+| `models/batch.py` | 95% |
+| `api/schemas/planning.py` | 100% |
 | **Overall** | **85%** |
 
 ---
@@ -509,13 +635,13 @@ uv run pytest tests/ --cov=meal_planner --cov-report=term-missing
 
 | Metric | Value |
 |--------|-------|
-| **Total Tests** | 192 |
-| **Passing** | 192 (100%) |
+| **Total Tests** | 263 |
+| **Passing** | 263 (100%) |
 | **Failing** | 0 |
 | **Skipped** | 0 |
 | **Errors** | 0 |
-| **Execution Time** | ~1.6s |
-| **Modules Covered** | 17 test files across 3 layers |
+| **Execution Time** | ~1.7s |
+| **Modules Covered** | 20 test files across 3 layers |
 
 ---
 
@@ -528,6 +654,7 @@ tests/
 │   ├── test_recipe_endpoints.py           # 25 HTTP-level API tests
 │   ├── test_food_endpoints.py             # 18 food + nutrition API tests
 │   ├── test_profile_endpoints.py          # 17 profile API tests (Phase 5)
+│   ├── test_planning_endpoints.py         # 22 planning API tests (Phase 6)
 │   └── test_error_handling.py             # 5 middleware/validation tests
 ├── unit/
 │   ├── services/
@@ -536,17 +663,20 @@ tests/
 │   │   ├── test_fuzzy_search.py           # T010 (10 tests)
 │   │   ├── test_recipe_service_unit.py    # 12 mock-based service tests
 │   │   ├── test_food_service_unit.py      # 10 food service mock tests
-│   │   └── test_profile_service_unit.py   # 14 profile service tests (Phase 5)
+│   │   ├── test_profile_service_unit.py   # 14 profile service tests (Phase 5)
+│   │   └── test_planning_service_unit.py  # 22 planning service tests (Phase 6)
 │   ├── schemas/
 │   │   ├── test_recipe_schemas.py         # 6 Pydantic validation tests
 │   │   ├── test_food_schemas.py           # 7 food schema validation tests
-│   │   └── test_profile_schemas.py        # 11 profile schema tests (Phase 5)
+│   │   ├── test_profile_schemas.py        # 11 profile schema tests (Phase 5)
+│   │   └── test_planning_schemas.py       # 16 planning schema tests (Phase 6)
 │   └── repository/
 │       └── test_session.py                # T008 (6 tests)
 ├── integration/
 │   ├── conftest.py                        # Shared DB fixtures for integration tests
 │   ├── test_recipe_service.py             # 7 service-layer integration tests
-│   └── test_profile_service.py            # 7 profile integration tests (Phase 5)
+│   ├── test_profile_service.py            # 7 profile integration tests (Phase 5)
+│   └── test_planning_service.py           # 11 planning integration tests (Phase 6)
 └── TEST_REPORT.md
 ```
 

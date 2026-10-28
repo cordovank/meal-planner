@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 # Import all models so Base.metadata knows about all tables
 from meal_planner.repository.sqlalchemy.models.base import Base
+from meal_planner.repository.sqlalchemy.models.batch import LeftoverBatch, MealPlanEntry  # noqa: F401
 from meal_planner.repository.sqlalchemy.models.food import FoodEntry, NutritionRecord  # noqa: F401
 from meal_planner.repository.sqlalchemy.models.profile import Profile, ProfileTarget  # noqa: F401
 from meal_planner.repository.sqlalchemy.models.recipe import Recipe, RecipeIngredient, RecipeNote  # noqa: F401

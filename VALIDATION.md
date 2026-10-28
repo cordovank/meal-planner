@@ -1,7 +1,7 @@
 # Validation & Commands Reference
 
 **Date**: 2026-03-18
-**Status**: ✅ Phase 1–4 Validated
+**Status**: ✅ Phase 1–6 Validated
 
 ---
 
@@ -449,6 +449,102 @@ Expected: `200 OK`
   "missing_data": ["Olive Oil - no nutrition linked"],
   "confidence_overall": "incomplete"
 }
+```
+
+---
+
+### Meal Planning (Phase 6)
+
+#### Get Weekly Plan (GET /api/v1/plan/{week_start})
+
+```bash
+curl http://localhost:8000/api/v1/plan/2026-03-16
+```
+Expected: `200 OK`
+```json
+{
+  "week_start": "2026-03-16",
+  "days": [
+    {"date": "2026-03-16", "meals": [...], "totals": {"calories": 500, ...}},
+    ...
+  ],
+  "weekly_totals": {"calories": 3500, ...}
+}
+```
+
+#### Add Meal to Plan (POST /api/v1/plan/{date}/meals)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/plan/2026-03-16/meals \
+  -H "Content-Type: application/json" \
+  -d '{"meal_slot": "dinner", "recipe_id": "<uuid>", "servings": 2}'
+```
+Expected: `201 Created`
+
+#### Remove Meal (DELETE /api/v1/plan/{date}/meals/{id})
+
+```bash
+curl -X DELETE http://localhost:8000/api/v1/plan/2026-03-16/meals/{entry_id}
+```
+Expected: `204 No Content`
+
+#### Reschedule Meal (POST /api/v1/plan/{date}/reschedule)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/plan/2026-03-16/reschedule \
+  -H "Content-Type: application/json" \
+  -d '{"meal_id": "<uuid>", "new_date": "2026-03-18", "new_slot": "dinner"}'
+```
+Expected: `200 OK`
+
+#### Create Leftover Batch (POST /api/v1/plan/batch)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/plan/batch \
+  -H "Content-Type: application/json" \
+  -d '{"recipe_id": "<uuid>", "prepared_servings": 6}'
+```
+Expected: `201 Created`
+```json
+{"batch_id": "<uuid>", "recipe_id": "<uuid>", "initial_servings": 6, "servings_remaining": 6, "prepared_date": "2026-03-16"}
+```
+
+#### Consume Batch Servings (POST /api/v1/plan/batch/{id}/consume)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/plan/batch/{batch_id}/consume \
+  -H "Content-Type: application/json" \
+  -d '{"servings_consumed": 1}'
+```
+Expected: `200 OK`
+```json
+{"batch_id": "<uuid>", "servings_remaining": 5, "last_consumed": "2026-03-17"}
+```
+
+#### List Active Batches (GET /api/v1/plan/batch/active)
+
+```bash
+curl http://localhost:8000/api/v1/plan/batch/active
+```
+Expected: `200 OK`
+
+#### Add Meal from Batch (POST /api/v1/plan/{date}/meals/from-batch)
+
+```bash
+curl -X POST http://localhost:8000/api/v1/plan/2026-03-17/meals/from-batch \
+  -H "Content-Type: application/json" \
+  -d '{"batch_id": "<uuid>", "meal_slot": "lunch", "servings_consumed": 1}'
+```
+Expected: `201 Created`
+
+#### Get Suggestions (GET /api/v1/plan/suggestions)
+
+```bash
+curl http://localhost:8000/api/v1/plan/suggestions
+```
+Expected: `200 OK`
+```json
+{"recent": [...], "leftovers": [...]}
 ```
 
 ---

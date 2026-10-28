@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-4xl font-bold">Leftover Batches</h1>
+    <a href="/planning" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">Back to Planner</a>
+  </div>
+
+  <section class="bg-white rounded-lg shadow p-6">
+    <div id="batches-content" class="space-y-4">
+      <p class="text-gray-500">Loading batches...</p>
+    </div>
+  </section>
+</div>
+
+<script>
+  async function loadBatches() {
+    try {
+      const resp = await fetch('/api/v1/plan/batch/active');
+      const data = await resp.json();
+      const content = document.getElementById('batches-content');
+
+      if (!data.items || data.items.length === 0) {
+        content.innerHTML = '<p class="text-gray-500">No active batches. Create a batch from the weekly planner or a recipe page.</p>';
+        return;
+      }
+
+      content.innerHTML = data.items.map(b => `
+        <div class="flex justify-between items-center p-4 bg-orange-50 rounded-lg border border-orange-200">
+          <div>
+            <p class="font-bold text-lg">${b.recipe_id.substring(0, 8)}...</p>
+            <p class="text-sm text-gray-600">
+              <span class="font-semibold">${b.servings_remaining}</span> of ${b.initial_servings} servings remaining
+            </p>
+            <p class="text-xs text-gray-500">Prepared: ${b.prepared_date}</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="consumeBatch('${b.id}')"
+              class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm">
+              Use 1 Serving
+            </button>
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      document.getElementById('batches-content').innerHTML = '<p class="text-red-500">Error loading batches.</p>';
+    }
+  }
+
+  async function consumeBatch(batchId) {
+    try {
+      const resp = await fetch(`/api/v1/plan/batch/${batchId}/consume`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({servings_consumed: 1}),
+      });
+      if (!resp.ok) { alert('Could not consume from batch'); return; }
+      loadBatches();
+    } catch (e) { alert('Error consuming batch'); }
+  }
+
+  loadBatches();
+</script>
+{% endblock %}

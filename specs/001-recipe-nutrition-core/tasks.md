@@ -121,13 +121,13 @@
 
 ### Implementation for User Story 4
 
-- [ ] T039 [P] [US4] Create LeftoverBatch model in src/meal_planner/repository/sqlalchemy/models/batch.py
-- [ ] T040 [P] [US4] Implement planning-related repository methods in existing repositories
-- [ ] T041 [US4] Extend RecipeService with batch tracking logic
-- [ ] T042 [P] [US4] Create Pydantic schemas for planning API in src/meal_planner/api/schemas/planning.py
-- [ ] T043 [US4] Implement planning API endpoints in src/meal_planner/api/v1/planning.py
-- [ ] T044 [P] [US4] Create weekly planner templates in src/meal_planner/web/templates/planning/
-- [ ] T045 [P] [US4] Add batch preparation UI to recipe detail template
+- [X] T039 [P] [US4] Create LeftoverBatch model in src/meal_planner/repository/sqlalchemy/models/batch.py
+- [X] T040 [P] [US4] Implement planning-related repository methods in existing repositories
+- [X] T041 [US4] Extend RecipeService with batch tracking logic
+- [X] T042 [P] [US4] Create Pydantic schemas for planning API in src/meal_planner/api/schemas/planning.py
+- [X] T043 [US4] Implement planning API endpoints in src/meal_planner/api/v1/planning.py
+- [X] T044 [P] [US4] Create weekly planner templates in src/meal_planner/web/templates/planning/
+- [X] T045 [P] [US4] Add batch preparation UI to recipe detail template
 
 **Checkpoint**: User Story 4 complete - weekly planning with leftovers supported
 
@@ -261,6 +261,6 @@
 **Validation & Commands**: See [VALIDATION.md](../../VALIDATION.md)  
 **Testing Strategy**: See [TESTING.md](./TESTING.md)
 
-Phase 1–5 includes **192 tests** across unit, integration, and API layers at 85% coverage.
+Phase 1–6 includes **263 tests** across unit, integration, and API layers at 85% coverage.
 
-All tests passing. ✅ Phase 5 complete. Ready for Phase 6 (User Story 4: Meal Planning).
+All tests passing. ✅ Phase 6 complete. Ready for Phase 7 (User Story 5: Daily Logging).

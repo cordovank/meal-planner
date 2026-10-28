@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <!-- Header -->
+  <div class="flex justify-between items-center mb-8">
+    <div>
+      <h1 class="text-4xl font-bold mb-2">Weekly Meal Plan</h1>
+      <p class="text-gray-600">Week of <span id="week-start-label">{{ week_start }}</span></p>
+    </div>
+    <div class="flex gap-2">
+      <button id="prev-week" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition">Previous</button>
+      <button id="today-btn" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">Today</button>
+      <button id="next-week" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition">Next</button>
+    </div>
+  </div>
+
+  <!-- Weekly Totals -->
+  <section class="bg-white rounded-lg shadow p-6 mb-8" id="weekly-totals">
+    <h2 class="text-xl font-bold mb-4">Weekly Nutrition Totals</h2>
+    <div class="grid grid-cols-3 sm:grid-cols-5 gap-4">
+      <div class="text-center">
+        <p class="text-sm text-gray-600">Calories</p>
+        <p class="text-2xl font-bold" id="total-calories">—</p>
+      </div>
+      <div class="text-center">
+        <p class="text-sm text-gray-600">Protein</p>
+        <p class="text-2xl font-bold" id="total-protein">—</p>
+      </div>
+      <div class="text-center">
+        <p class="text-sm text-gray-600">Carbs</p>
+        <p class="text-2xl font-bold" id="total-carbs">—</p>
+      </div>
+      <div class="text-center">
+        <p class="text-sm text-gray-600">Fat</p>
+        <p class="text-2xl font-bold" id="total-fat">—</p>
+      </div>
+      <div class="text-center">
+        <p class="text-sm text-gray-600">Added Sugar</p>
+        <p class="text-2xl font-bold" id="total-sugar">—</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Day Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-7 gap-4" id="day-grid">
+    <!-- Days are rendered by JavaScript -->
+  </div>
+
+  <!-- Active Batches -->
+  <section class="bg-white rounded-lg shadow p-6 mt-8" id="batches-section">
+    <h2 class="text-xl font-bold mb-4">Active Leftover Batches</h2>
+    <div id="batches-list" class="space-y-3">
+      <p class="text-gray-500">No active batches.</p>
+    </div>
+  </section>
+</div>
+
+<!-- Add Meal Modal -->
+<div id="add-meal-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+    <h3 class="text-xl font-bold mb-4">Add Meal</h3>
+    <form id="add-meal-form" class="space-y-4">
+      <input type="hidden" id="modal-date" />
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Meal Slot</label>
+        <select id="modal-slot" class="w-full border rounded-lg px-3 py-2">
+          <option value="breakfast">Breakfast</option>
+          <option value="lunch">Lunch</option>
+          <option value="dinner">Dinner</option>
+          <option value="snack">Snack</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Recipe</label>
+        <select id="modal-recipe" class="w-full border rounded-lg px-3 py-2">
+          <option value="">Select a recipe...</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Servings</label>
+        <input type="number" id="modal-servings" value="1" min="0.25" step="0.25"
+          class="w-full border rounded-lg px-3 py-2" />
+      </div>
+      <div class="flex gap-3 justify-end">
+        <button type="button" id="modal-cancel"
+          class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition">Cancel</button>
+        <button type="submit"
+          class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">Add Meal</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const SLOTS = ['breakfast', 'lunch', 'dinner', 'snack'];
+  let currentWeekStart = '{{ week_start }}';
+
+  function getMonday(d) {
+    const dt = new Date(d + 'T00:00:00');
+    const day = dt.getDay();
+    const diff = dt.getDate() - day + (day === 0 ? -6 : 1);
+    const mon = new Date(dt.setDate(diff));
+    return mon.toISOString().split('T')[0];
+  }
+
+  async function loadWeek(weekStart) {
+    currentWeekStart = weekStart;
+    document.getElementById('week-start-label').textContent = weekStart;
+    try {
+      const resp = await fetch(`/api/v1/plan/${weekStart}`);
+      const plan = await resp.json();
+      renderWeek(plan);
+    } catch (e) {
+      console.error('Failed to load week plan', e);
+    }
+    loadBatches();
+  }
+
+  function renderWeek(plan) {
+    const grid = document.getElementById('day-grid');
+    grid.innerHTML = '';
+    const wt = plan.weekly_totals || {};
+    document.getElementById('total-calories').textContent = Math.round(wt.calories || 0);
+    document.getElementById('total-protein').textContent = Math.round(wt.protein_g || 0) + 'g';
+    document.getElementById('total-carbs').textContent = Math.round(wt.carbohydrates_g || 0) + 'g';
+    document.getElementById('total-fat').textContent = Math.round(wt.fat_g || 0) + 'g';
+    document.getElementById('total-sugar').textContent = Math.round(wt.added_sugar_g || 0) + 'g';
+
+    (plan.days || []).forEach((day, i) => {
+      const dt = day.date;
+      const dayName = DAYS[i] || dt;
+      const col = document.createElement('div');
+      col.className = 'bg-white rounded-lg shadow p-4 min-h-[200px]';
+      let html = `<div class="font-bold text-center mb-2 pb-2 border-b">${dayName}<br/><span class="text-xs text-gray-500">${dt}</span></div>`;
+      const dayTotals = day.totals || {};
+      if (dayTotals.calories) {
+        html += `<div class="text-xs text-gray-500 mb-2 text-center">${Math.round(dayTotals.calories)} kcal</div>`;
+      }
+      (day.meals || []).forEach(meal => {
+        const slotColor = {breakfast:'bg-yellow-100',lunch:'bg-green-100',dinner:'bg-blue-100',snack:'bg-purple-100'}[meal.meal_slot] || 'bg-gray-100';
+        html += `<div class="mb-2 p-2 rounded ${slotColor} text-sm">
+          <div class="font-semibold truncate">${meal.title}</div>
+          <div class="text-xs text-gray-600">${meal.meal_slot} · ${meal.servings} srv</div>
+          ${meal.batch ? `<div class="text-xs text-orange-600">${meal.batch.servings_remaining} left in batch</div>` : ''}
+          <button class="text-xs text-red-500 hover:text-red-700 mt-1" onclick="removeMeal('${dt}','${meal.id}')">Remove</button>
+        </div>`;
+      });
+      html += `<button class="w-full mt-2 px-2 py-1 text-sm bg-green-50 text-green-700 rounded hover:bg-green-100 transition" onclick="openAddMeal('${dt}')">+ Add meal</button>`;
+      col.innerHTML = html;
+      grid.appendChild(col);
+    });
+  }
+
+  async function loadBatches() {
+    try {
+      const resp = await fetch('/api/v1/plan/batch/active');
+      const data = await resp.json();
+      const list = document.getElementById('batches-list');
+      if (!data.items || data.items.length === 0) {
+        list.innerHTML = '<p class="text-gray-500">No active batches.</p>';
+        return;
+      }
+      list.innerHTML = data.items.map(b => `
+        <div class="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+          <div>
+            <span class="font-semibold">${b.recipe_id.substring(0,8)}...</span>
+            <span class="text-sm text-gray-600 ml-2">${b.servings_remaining}/${b.initial_servings} servings</span>
+            <span class="text-xs text-gray-500 ml-2">prepared ${b.prepared_date}</span>
+          </div>
+          <button class="text-sm text-blue-600 hover:text-blue-800" onclick="consumeFromBatch('${b.id}')">Use 1 serving</button>
+        </div>
+      `).join('');
+    } catch (e) { console.error('Failed to load batches', e); }
+  }
+
+  function openAddMeal(dateStr) {
+    document.getElementById('modal-date').value = dateStr;
+    document.getElementById('add-meal-modal').classList.remove('hidden');
+    loadRecipeOptions();
+  }
+
+  async function loadRecipeOptions() {
+    const select = document.getElementById('modal-recipe');
+    if (select.options.length > 1) return;
+    try {
+      const resp = await fetch('/api/v1/recipes?limit=100');
+      const data = await resp.json();
+      (data.items || []).forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.textContent = r.title;
+        select.appendChild(opt);
+      });
+    } catch (e) { /* recipes unavailable */ }
+  }
+
+  document.getElementById('modal-cancel').addEventListener('click', () => {
+    document.getElementById('add-meal-modal').classList.add('hidden');
+  });
+
+  document.getElementById('add-meal-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const dateVal = document.getElementById('modal-date').value;
+    const payload = {
+      meal_slot: document.getElementById('modal-slot').value,
+      recipe_id: document.getElementById('modal-recipe').value,
+      servings: parseFloat(document.getElementById('modal-servings').value) || 1,
+    };
+    if (!payload.recipe_id) { alert('Please select a recipe'); return; }
+    try {
+      const resp = await fetch(`/api/v1/plan/${dateVal}/meals`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload),
+      });
+      if (!resp.ok) { alert('Failed to add meal'); return; }
+      document.getElementById('add-meal-modal').classList.add('hidden');
+      loadWeek(currentWeekStart);
+    } catch (e) { alert('Error adding meal'); }
+  });
+
+  async function removeMeal(dateStr, entryId) {
+    if (!confirm('Remove this meal?')) return;
+    try {
+      await fetch(`/api/v1/plan/${dateStr}/meals/${entryId}`, {method: 'DELETE'});
+      loadWeek(currentWeekStart);
+    } catch (e) { alert('Error removing meal'); }
+  }
+
+  async function consumeFromBatch(batchId) {
+    try {
+      const resp = await fetch(`/api/v1/plan/batch/${batchId}/consume`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({servings_consumed: 1}),
+      });
+      if (!resp.ok) { alert('Failed to consume from batch'); return; }
+      loadBatches();
+    } catch (e) { alert('Error consuming batch'); }
+  }
+
+  document.getElementById('prev-week').addEventListener('click', () => {
+    const d = new Date(currentWeekStart + 'T00:00:00');
+    d.setDate(d.getDate() - 7);
+    loadWeek(d.toISOString().split('T')[0]);
+  });
+  document.getElementById('next-week').addEventListener('click', () => {
+    const d = new Date(currentWeekStart + 'T00:00:00');
+    d.setDate(d.getDate() + 7);
+    loadWeek(d.toISOString().split('T')[0]);
+  });
+  document.getElementById('today-btn').addEventListener('click', () => {
+    loadWeek(getMonday(new Date().toISOString().split('T')[0]));
+  });
+
+  // Initial load
+  loadWeek(currentWeekStart);
+</script>
+{% endblock %}
